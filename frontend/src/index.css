@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  transition: background-color 0.25s ease, color 0.2s ease;
+}
+
+body {
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--qa-bg, #050508);
+  color: var(--qa-text, #f1f0f5);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.25s ease, color 0.2s ease;
+}
+
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--qa-scroll-thumb, #252535); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--qa-border-foc, #383855); }
+
+input::placeholder, textarea::placeholder { color: var(--qa-text-faint, #4a4a6a); }
+select option { background: var(--qa-card, #111118); color: var(--qa-text, #f1f0f5); }
+
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder { color: var(--qa-text-faint); }
+[data-theme="light"] select option { background: var(--qa-input); color: var(--qa-text); }
+textarea { resize: vertical; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(124,106,247,0.2); }
+  50% { box-shadow: 0 0 40px rgba(124,106,247,0.4); }
+}
+@keyframes float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(40px, -30px) scale(1.05); }
+  66% { transform: translate(-30px, 40px) scale(0.95); }
+}
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.fu { animation: fadeUp 0.25s ease both; }
+.fi { animation: fadeIn 0.2s ease both; }
+
+.glass {
+  background: rgba(17,17,24,0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.shimmer {
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.03) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
