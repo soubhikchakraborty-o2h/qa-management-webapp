@@ -32,6 +32,7 @@ export const C = {
 export const STATUS_COLORS: Record<string, string> = {
   'Open': '#ef4444', 'In Progress': '#f59e0b', 'Fixed': '#10b981',
   'Closed': '#6b7280', "Won't Fix": '#8b5cf6',
+  'Fixed (To Test)': '#14b8a6', "Won't Fix (Invalid)": '#6366f1',
   'To Test': '#f59e0b', 'In Test': '#3b82f6', 'Done': '#10b981',
   'Reopen': '#f97316', 'No Action': '#6b7280',
   'active': '#10b981', 'in_review': '#f59e0b', 'completed': '#6b7280', 'on_hold': '#f97316',
