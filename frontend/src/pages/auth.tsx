@@ -29,40 +29,60 @@ export function Landing({ onChoose }: { onChoose: (role: 'qa' | 'developer') => 
 
   return (
     <>
-      <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px 120px', position: 'relative', overflow: 'hidden' }}>
-        <AnimBg />
-        <div className="fu" style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
-          <div style={{ fontSize: '11px', letterSpacing: '.22em', color: C.accent, fontFamily: "'JetBrains Mono', monospace", marginBottom: '24px', textTransform: 'uppercase' }}>O2H TECHNOLOGY</div>
-          <h1 style={{ fontSize: 'clamp(38px,6vw,62px)', fontWeight: '900', margin: '0 0 40px', fontFamily: "'JetBrains Mono', monospace", letterSpacing: '-2.5px', background: `linear-gradient(150deg,${C.text} 10%,${C.accent} 60%,${C.purple} 100%)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', lineHeight: 1.05 }}>Quality<br />Analysis</h1>
-          <div style={{ display: 'inline-block', padding: '7px 22px', borderRadius: '8px', background: 'var(--qa-card)', border: `1px solid ${C.border}`, marginBottom: '30px' }}>
-            <span style={{ fontSize: '13px', color: C.text, fontFamily: "'JetBrains Mono', monospace", fontWeight: '600', letterSpacing: '.05em' }}>— SELECT YOUR ROLE —</span>
-          </div>
-          <div style={{ display: 'flex', gap: '24px', justifyContent: 'center', flexWrap: 'wrap' }}>
+      <div style={{ minHeight: '100vh', background: '#050508', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px 80px', position: 'relative', overflow: 'hidden' }}>
+        {/* Gradient orbs */}
+        <div style={{ position: 'absolute', width: '520px', height: '520px', borderRadius: '50%', background: '#7c6af7', filter: 'blur(90px)', opacity: 0.4, top: '-140px', left: '-140px', animation: 'float 14s ease-in-out infinite', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', width: '420px', height: '420px', borderRadius: '50%', background: '#5b8df6', filter: 'blur(90px)', opacity: 0.3, bottom: '-120px', right: '-120px', animation: 'float 14s ease-in-out infinite reverse', pointerEvents: 'none' }} />
+        {/* Dot grid overlay */}
+        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(124,106,247,0.12) 1px, transparent 0)', backgroundSize: '28px 28px', pointerEvents: 'none' }} />
+
+        <div className="fu" style={{ position: 'relative', zIndex: 1, textAlign: 'center', width: '100%', maxWidth: '820px' }}>
+          <div style={{ fontSize: '11px', letterSpacing: '0.3em', color: 'var(--qa-text-mid)', fontFamily: "'JetBrains Mono', monospace", marginBottom: '18px', textTransform: 'uppercase' }}>O2H TECHNOLOGY</div>
+          <h1 style={{ fontSize: 'clamp(44px,7vw,72px)', fontWeight: 700, letterSpacing: '-0.03em', background: 'linear-gradient(180deg, #fff 0%, #a0a0a0 120%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', margin: '0 0 10px', fontFamily: "'JetBrains Mono', monospace", lineHeight: 1.02 }}>Quality Analysis</h1>
+          <div style={{ fontSize: '14px', color: 'var(--qa-text-mid)', fontFamily: "'JetBrains Mono', monospace", marginBottom: '64px' }}>QA management for software testing teams.</div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px', maxWidth: '820px', margin: '0 auto' }}>
             {([
-              { id: 'qa', Icon: BeetleIcon, title: 'QA Engineer', sub: 'Access your projects,\ntest cases & bugs', color: C.accent },
-              { id: 'developer', Icon: DevIcon, title: 'Developer', sub: 'View projects, comment on\ntest cases & update bugs', color: C.purple },
+              { id: 'qa', Icon: BeetleIcon, title: 'QA Engineer', sub: 'Access your projects, test cases & bugs', color: C.accent },
+              { id: 'developer', Icon: DevIcon, title: 'Developer', sub: 'View projects, comment on test cases & update bugs', color: C.purple },
             ] as const).map(card => (
               <div key={card.id} onClick={() => onChoose(card.id as any)}
                 onMouseEnter={() => setHov(card.id)} onMouseLeave={() => setHov(null)}
-                style={{ background: hov === card.id ? `${card.color}0e` : 'var(--qa-card)', backdropFilter: 'blur(28px)', border: `1px solid ${hov === card.id ? card.color + '60' : C.border}`, borderRadius: '22px', padding: '38px 42px', cursor: 'pointer', textAlign: 'center', width: '215px', transition: 'all .28s', transform: hov === card.id ? 'translateY(-6px) scale(1.02)' : 'none', boxShadow: hov === card.id ? `0 24px 70px ${card.color}28, 0 0 0 1px ${card.color}20` : '0 4px 28px rgba(0,0,0,.2)' }}>
-                <div style={{ color: card.color, marginBottom: '16px', display: 'flex', justifyContent: 'center' }}><card.Icon size={48} color={card.color} /></div>
-                <div style={{ fontSize: '16px', fontWeight: '800', color: C.text, fontFamily: "'JetBrains Mono', monospace", marginBottom: '8px' }}>{card.title}</div>
-                <div style={{ fontSize: '11px', color: C.textMid, lineHeight: '1.7', whiteSpace: 'pre-line' }}>{card.sub}</div>
+                style={{
+                  position: 'relative',
+                  background: 'rgba(17,17,24,0.65)',
+                  backdropFilter: 'blur(20px)',
+                  WebkitBackdropFilter: 'blur(20px)',
+                  border: `1px solid ${hov === card.id ? 'var(--qa-accent)' : 'rgba(124,106,247,0.18)'}`,
+                  borderRadius: '16px',
+                  padding: '48px 36px',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'transform .25s, border-color .25s, box-shadow .25s',
+                  transform: hov === card.id ? 'translateY(-4px)' : 'none',
+                  boxShadow: hov === card.id ? '0 12px 40px -10px rgba(124,106,247,0.45)' : 'none',
+                }}>
+                <span style={{ position: 'absolute', top: '22px', right: '22px', fontSize: '16px', color: hov === card.id ? 'var(--qa-accent)' : 'var(--qa-text-faint)', transition: 'color .25s', fontFamily: "'JetBrains Mono', monospace" }}>↗</span>
+                <div style={{ width: '56px', height: '56px', borderRadius: '12px', background: 'rgba(124,106,247,0.12)', border: '1px solid rgba(124,106,247,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '28px' }}>
+                  <card.Icon size={28} color={card.color} />
+                </div>
+                <div style={{ fontSize: '22px', fontWeight: 600, color: 'var(--qa-text)', marginBottom: '6px', fontFamily: "'JetBrains Mono', monospace", letterSpacing: '-0.01em' }}>{card.title}</div>
+                <div style={{ fontSize: '13px', color: 'var(--qa-text-mid)', fontFamily: "'JetBrains Mono', monospace", lineHeight: 1.6 }}>{card.sub}</div>
               </div>
             ))}
           </div>
-        </div>
 
-        {/* HR login link */}
-        <div style={{ position: 'absolute', bottom: '48px', left: '50%', transform: 'translateX(-50%)', zIndex: 2 }}>
-          <button
-            onClick={() => setShowHRLogin(true)}
-            style={{ background: 'none', border: 'none', color: C.textMid, fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', cursor: 'pointer', padding: '8px 16px', borderRadius: '8px', transition: 'all .2s', letterSpacing: '.02em' }}
-            onMouseEnter={e => { e.currentTarget.style.color = C.accent; e.currentTarget.style.background = 'rgba(124,106,247,0.08)'; }}
-            onMouseLeave={e => { e.currentTarget.style.color = C.textMid; e.currentTarget.style.background = 'none'; }}
-          >
-            Are you from HR? Login here →
-          </button>
+          {/* HR login link */}
+          <div style={{ marginTop: '56px', display: 'flex', justifyContent: 'center' }}>
+            <button
+              onClick={() => setShowHRLogin(true)}
+              style={{ background: 'none', border: 'none', borderBottom: '1px solid transparent', color: 'var(--qa-text-mid)', fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', cursor: 'pointer', padding: '4px 2px', transition: 'color .2s, border-color .2s', letterSpacing: '.02em' }}
+              onMouseEnter={e => { e.currentTarget.style.color = '#7c6af7'; e.currentTarget.style.borderBottomColor = '#7c6af7'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--qa-text-mid)'; e.currentTarget.style.borderBottomColor = 'transparent'; }}
+            >
+              Are you from HR? Login here →
+            </button>
+          </div>
         </div>
       </div>
 

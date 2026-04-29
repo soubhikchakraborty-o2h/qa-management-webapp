@@ -5,48 +5,155 @@ import { C, STATUS_COLORS, STATUS_LABELS, APP_TYPE_ICON, PRIORITY_COLORS } from 
 import { getProjects, getProjectsForQA, createProject, deleteProject, getTeam, addMember } from '../lib/api';
 import { GCard, Chip, Btn, Modal, Inp, Sel, ConfirmDeleteModal } from '../components/ui/index';
 
+const DICEBEAR = (name: string) =>
+  `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(name.toLowerCase().trim())}&backgroundColor=b6e3f4,c0aede,d1d4f9`;
+
+function StatusPill({ status }: { status: string }) {
+  const isActive = status === 'active';
+  const color = isActive ? '#10b981' : status === 'in_review' ? '#f59e0b' : status === 'on_hold' ? '#f97316' : '#6b7280';
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: '6px',
+      padding: '3px 10px 3px 8px', borderRadius: '999px',
+      background: `${color}1f`, color, border: `1px solid ${color}38`,
+      fontSize: '10px', fontWeight: 600, fontFamily: "'JetBrains Mono',monospace",
+      letterSpacing: '.02em', whiteSpace: 'nowrap',
+    }}>
+      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: color, flexShrink: 0 }} />
+      {STATUS_LABELS[status] || status}
+    </span>
+  );
+}
+
 function ProjCard({ p, onClick, onDelete }: { p: any; onClick: () => void; onDelete?: () => void }) {
   const ownerName = p.created_by_user?.name || '';
   const passRate = p.test_case_count ? Math.round((p.pass_count / p.test_case_count) * 100) : 0;
-  const bc = p.status === 'active' ? C.accent : p.status === 'in_review' ? C.yellow : C.border;
+  const [hov, setHov] = useState(false);
+
+  // Build QA avatar list: owner + additional QAs (if available on project)
+  const qaNames: string[] = [];
+  if (ownerName) qaNames.push(ownerName);
 
   return (
-    <GCard onClick={onClick} hover glow={bc} style={{ padding: '20px', opacity: p.status === 'completed' ? 0.6 : 1, position: 'relative' }}>
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        position: 'relative',
+        background: 'var(--qa-card)',
+        border: `1px solid ${hov ? 'var(--qa-accent)' : 'rgba(255,255,255,0.06)'}`,
+        borderRadius: '14px',
+        padding: '18px',
+        cursor: 'pointer',
+        opacity: p.status === 'completed' ? 0.6 : 1,
+        transform: hov ? 'translateY(-2px)' : 'none',
+        boxShadow: hov ? '0 10px 30px -10px rgba(124,106,247,0.45)' : 'none',
+        transition: 'transform .2s, border-color .2s, box-shadow .2s',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Gradient top line on hover */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
+        background: hov ? 'linear-gradient(90deg, var(--qa-accent), transparent)' : 'transparent',
+        transition: 'background .2s',
+      }} />
       {onDelete && (
-        <button onClick={e => { e.stopPropagation(); onDelete(); }} title="Delete project" style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '6px', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '12px', color: '#ef4444', zIndex: 1 }}>🗑</button>
+        <button onClick={e => { e.stopPropagation(); onDelete(); }} title="Delete project"
+          style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '6px', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '11px', color: '#ef4444', zIndex: 1 }}>🗑</button>
       )}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-        <div>
-          <div style={{ fontSize: '10px', color: C.accent, fontFamily: "'JetBrains Mono',monospace", marginBottom: '5px', letterSpacing: '0.05em' }}>{APP_TYPE_ICON[p.app_type]} {p.project_code}</div>
-          <div style={{ fontSize: '14px', fontWeight: '600', color: C.text, lineHeight: 1.3 }}>{p.name}</div>
-        </div>
-        <Chip text={STATUS_LABELS[p.status] || p.status} color={STATUS_COLORS[p.status]} />
+
+      {/* Top row: code badge + status */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', paddingRight: onDelete ? '30px' : '0' }}>
+        <span style={{
+          padding: '3px 8px',
+          borderRadius: '6px',
+          background: 'rgba(124,106,247,0.12)',
+          border: '1px solid rgba(124,106,247,0.22)',
+          color: 'var(--qa-accent)',
+          fontSize: '10.5px', fontWeight: 700,
+          fontFamily: "'JetBrains Mono',monospace",
+          letterSpacing: '.02em',
+        }}>{p.project_code}</span>
+        <StatusPill status={p.status} />
       </div>
-      <div style={{ display: 'flex', gap: '5px', marginBottom: '14px', flexWrap: 'wrap' }}>
-        <Chip text={p.figma_url ? 'Figma ✓' : 'Figma —'} color={p.figma_url ? C.purple : C.textDim} sm />
-        <Chip text={p.frd_url ? 'FRD ✓' : 'FRD —'} color={p.frd_url ? C.blue : C.textDim} sm />
+
+      {/* Project name */}
+      <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--qa-text)', lineHeight: 1.35, marginBottom: '6px', fontFamily: "'JetBrains Mono',monospace" }}>{p.name}</div>
+
+      {/* Description */}
+      <div style={{
+        fontSize: '11.5px', color: 'var(--qa-text-mid)', lineHeight: 1.5,
+        marginBottom: '14px',
+        minHeight: '2.9em',
+        display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+        fontFamily: "'JetBrains Mono',monospace",
+      } as React.CSSProperties}>{p.description || ' '}</div>
+
+      {/* Tags row */}
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '14px', flexWrap: 'wrap' }}>
+        <span style={{
+          fontSize: '10px', padding: '3px 8px', borderRadius: '6px',
+          background: p.figma_url ? 'rgba(124,106,247,0.12)' : 'rgba(255,255,255,0.04)',
+          color: p.figma_url ? 'var(--qa-accent)' : 'var(--qa-text-faint)',
+          fontFamily: "'JetBrains Mono',monospace", fontWeight: 600,
+        }}>{p.figma_url ? 'Figma ✓' : 'Figma —'}</span>
+        <span style={{
+          fontSize: '10px', padding: '3px 8px', borderRadius: '6px',
+          background: p.frd_url ? 'rgba(124,106,247,0.12)' : 'rgba(255,255,255,0.04)',
+          color: p.frd_url ? 'var(--qa-accent)' : 'var(--qa-text-faint)',
+          fontFamily: "'JetBrains Mono',monospace", fontWeight: 600,
+        }}>{p.frd_url ? 'FRD ✓' : 'FRD —'}</span>
+        <span style={{
+          fontSize: '10px', padding: '3px 8px', borderRadius: '6px',
+          background: 'rgba(255,255,255,0.04)',
+          color: 'var(--qa-text-mid)',
+          fontFamily: "'JetBrains Mono',monospace", fontWeight: 600,
+        }}>{APP_TYPE_ICON[p.app_type]} {p.app_type?.toUpperCase()}</span>
       </div>
+
+      {/* Pass rate */}
       <div style={{ marginBottom: '14px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-          <span style={{ fontSize: '10px', color: 'var(--qa-text-faint)', fontFamily: "'JetBrains Mono',monospace" }}>Pass Rate</span>
-          <span style={{ fontSize: '10px', color: passRate > 80 ? C.green : passRate > 50 ? C.yellow : C.red, fontFamily: "'JetBrains Mono',monospace" }}>{passRate}%</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+          <span style={{ fontSize: '9px', color: 'var(--qa-text-mid)', fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.1em', textTransform: 'uppercase', fontWeight: 600 }}>Pass Rate</span>
+          <span style={{ fontSize: '11px', color: 'var(--qa-text)', fontFamily: "'JetBrains Mono',monospace", fontWeight: 700 }}>{passRate}%</span>
         </div>
-        <div style={{ height: '2px', background: C.border, borderRadius: '2px', overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${passRate}%`, background: passRate > 80 ? C.green : passRate > 50 ? C.yellow : C.red, borderRadius: '2px', transition: 'width 0.4s ease' }} />
+        <div style={{ height: '4px', background: 'rgba(255,255,255,0.06)', borderRadius: '999px', overflow: 'hidden' }}>
+          <div style={{
+            height: '100%', width: `${passRate}%`,
+            background: 'linear-gradient(90deg, var(--qa-accent), #10b981)',
+            borderRadius: '999px',
+            transition: 'width 0.4s ease',
+          }} />
         </div>
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <span style={{ fontSize: '11px', color: 'var(--qa-text-faint)', fontFamily: "'JetBrains Mono',monospace" }}>🐛 {p.bug_count || 0}</span>
-          <span style={{ fontSize: '11px', color: 'var(--qa-text-faint)', fontFamily: "'JetBrains Mono',monospace" }}>✓ {p.test_case_count || 0}</span>
+
+      {/* Bottom row */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ display: 'flex', gap: '14px' }}>
+          <span style={{ fontSize: '11px', color: 'var(--qa-text-mid)', fontFamily: "'JetBrains Mono',monospace" }}>🪲 <strong style={{ color: 'var(--qa-text)', fontWeight: 700 }}>{p.bug_count || 0}</strong></span>
+          <span style={{ fontSize: '11px', color: 'var(--qa-text-mid)', fontFamily: "'JetBrains Mono',monospace" }}>✓ <strong style={{ color: 'var(--qa-text)', fontWeight: 700 }}>{p.test_case_count || 0}</strong></span>
         </div>
-        {ownerName && (
-          <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: `linear-gradient(135deg,${C.accent},${C.purple})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: '800', color: '#ffffff', border: `2px solid ${C.card}`, fontFamily: "'JetBrains Mono',monospace" }}>
-            {ownerName[0]}
-          </div>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          {qaNames.slice(0, 3).map((name, i) => (
+            <div key={name + i} style={{
+              width: '24px', height: '24px', borderRadius: '50%',
+              border: '2px solid var(--qa-card)',
+              marginLeft: i === 0 ? 0 : '-8px',
+              overflow: 'hidden',
+              background: `linear-gradient(135deg,${C.accent},${C.purple})`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '9px', fontWeight: 700, color: '#fff',
+              fontFamily: "'JetBrains Mono',monospace",
+              position: 'relative', zIndex: qaNames.length - i,
+            }} title={name}>
+              <img src={DICEBEAR(name)} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+            </div>
+          ))}
+        </div>
       </div>
-    </GCard>
+    </div>
   );
 }
 
@@ -129,17 +236,19 @@ export function ProjectsPage({ user, onProjectClick, filterByQA, teamViewMember,
       : 'My Projects';
 
   return (
-    <div style={{ padding: '28px 32px', width: '100%' }} className="fu">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px', flexWrap: 'wrap', gap: '12px' }}>
+    <div style={{ padding: '28px 36px 48px', width: '100%' }} className="fu">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '22px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: '22px', fontWeight: '700', color: C.text, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '-0.5px' }}>
+          <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 600, color: 'var(--qa-text)', fontFamily: "'JetBrains Mono',monospace", letterSpacing: '-0.02em' }}>
             {pageTitle}
           </h1>
-          <div style={{ fontSize: '12px', color: 'var(--qa-text-faint)', fontFamily: "'JetBrains Mono',monospace", marginTop: '4px' }}>
-            <span style={{ color: C.green }}>{filtered.filter((p: any) => p.status === 'active').length} active</span> · {filtered.length} total
+          <div style={{ fontSize: '12px', color: 'var(--qa-text-mid)', fontFamily: "'JetBrains Mono',monospace", marginTop: '6px' }}>
+            <span style={{ color: '#10b981' }}>{filtered.filter((p: any) => p.status === 'active').length} active</span>
+            <span style={{ opacity: 0.4, margin: '0 6px' }}>·</span>
+            {filtered.length} total
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginLeft: 'auto' }}>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginLeft: 'auto' }}>
           {!isDevMode && <Btn v="ghost" onClick={() => setShowTeam(true)} icon="👥">Team</Btn>}
           {!isDevMode && !isTeamView && <Btn onClick={() => setShowAdd(true)} icon="＋">New Project</Btn>}
         </div>
@@ -157,25 +266,60 @@ export function ProjectsPage({ user, onProjectClick, filterByQA, teamViewMember,
         </div>
       )}
 
-      <input placeholder="Search projects…" value={search} onChange={e => setSearch(e.target.value)} style={{ width: '100%', maxWidth: '300px', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '8px 14px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none', marginBottom: '22px' }} />
+      {/* Search */}
+      <div style={{ position: 'relative', marginBottom: '22px', maxWidth: '100%' }}>
+        <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--qa-text-mid)', fontSize: '14px', pointerEvents: 'none' }}>⌕</span>
+        <input
+          placeholder="Search projects…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          onFocus={e => { e.currentTarget.style.borderColor = 'var(--qa-accent)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(124,106,247,0.12)'; }}
+          onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; e.currentTarget.style.boxShadow = 'none'; }}
+          style={{
+            width: '100%',
+            background: 'var(--qa-card)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: '10px',
+            padding: '10px 12px 10px 38px',
+            color: 'var(--qa-text)',
+            fontSize: '13px',
+            fontFamily: "'JetBrains Mono',monospace",
+            outline: 'none',
+            boxSizing: 'border-box',
+            transition: 'border-color .15s, box-shadow .15s',
+          }}
+        />
+      </div>
 
       {isDevMode && !qaForFetch
         ? <div style={{ textAlign: 'center', padding: '60px 20px', fontFamily: "'JetBrains Mono',monospace" }}>
             <div style={{ fontSize: '28px', marginBottom: '14px' }}>◈</div>
-            <div style={{ color: 'var(--qa-text-faint)', fontWeight: '600', marginBottom: '6px', fontSize: '13px' }}>No QA selected</div>
-            <div style={{ fontSize: '11px', color: 'var(--qa-text-xfaint)', maxWidth: '280px', margin: '0 auto', lineHeight: '1.7' }}>
+            <div style={{ color: 'var(--qa-text-mid)', fontWeight: '600', marginBottom: '6px', fontSize: '13px' }}>No QA selected</div>
+            <div style={{ fontSize: '11px', color: 'var(--qa-text-faint)', maxWidth: '280px', margin: '0 auto', lineHeight: '1.7' }}>
               Select a QA engineer to view their projects.
             </div>
           </div>
         : isLoading
-          ? <div style={{ color: 'var(--qa-text-faint)', fontFamily: "'JetBrains Mono',monospace", fontSize: '13px' }}>Loading projects…</div>
+          ? <div style={{ color: 'var(--qa-text-mid)', fontFamily: "'JetBrains Mono',monospace", fontSize: '13px' }}>Loading projects…</div>
           : filtered.length === 0
-            ? <div style={{ textAlign: 'center', padding: '60px 20px', fontFamily: "'JetBrains Mono',monospace" }}>
-                <div style={{ fontSize: '28px', marginBottom: '12px' }}>◈</div>
-                <div style={{ color: 'var(--qa-text-xfaint)', fontWeight: '600', marginBottom: '6px', fontSize: '13px' }}>No projects found</div>
-                <div style={{ fontSize: '11px', color: 'var(--qa-text-xfaint)' }}>{search ? 'Try a different search term' : isTeamView ? 'This QA has no projects yet' : 'Click "New Project" to create one'}</div>
+            ? <div style={{ textAlign: 'center', padding: '80px 20px', fontFamily: "'JetBrains Mono',monospace" }}>
+                <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'rgba(124,106,247,0.08)', border: '1px solid rgba(124,106,247,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', margin: '0 auto 16px' }}>◈</div>
+                <div style={{ color: 'var(--qa-text)', fontWeight: '600', marginBottom: '6px', fontSize: '14px' }}>
+                  {search ? 'No results' : isTeamView ? 'No projects assigned' : 'No projects yet'}
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--qa-text-faint)', maxWidth: '260px', margin: '8px auto 0', lineHeight: 1.6 }}>
+                  {search ? 'Try a different search term.' : isTeamView ? 'This QA has no projects assigned yet.' : 'Create your first project to start tracking test cases, bugs, and automation.'}
+                </div>
+                {!search && !isTeamView && !isDevMode && (
+                  <button
+                    onClick={() => setShowAdd(true)}
+                    style={{ marginTop: '20px', display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 20px', borderRadius: '8px', background: 'var(--qa-accent)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: '700', fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.02em' }}
+                  >
+                    ＋ New Project
+                  </button>
+                )}
               </div>
-            : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(268px,1fr))', gap: '16px' }}>
+            : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(340px,1fr))', gap: '18px' }}>
                 {filtered.map((p: any) => (
                   <ProjCard
                     key={p.id}

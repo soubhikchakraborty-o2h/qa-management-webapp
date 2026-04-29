@@ -8,8 +8,8 @@ import toast from 'react-hot-toast';
 const RED = '#ef4444';
 
 // ── NavItem ───────────────────────────────────────────────────
-function NavItem({ label, icon, active, onClick, indent }: {
-  label: string; icon: string; active: boolean; onClick: () => void; indent?: boolean;
+function NavItem({ label, icon, active, onClick, indent, collapsed }: {
+  label: string; icon: string; active: boolean; onClick: () => void; indent?: boolean; collapsed?: boolean;
 }) {
   const [hov, setHov] = useState(false);
   return (
@@ -17,23 +17,22 @@ function NavItem({ label, icon, active, onClick, indent }: {
       onClick={onClick}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
+      title={collapsed ? label : undefined}
       style={{
-        display: 'flex', alignItems: 'center', gap: '9px',
-        padding: active
-          ? `8px 10px 8px ${indent ? '18px' : '8px'}`
-          : `8px 10px 8px ${indent ? '20px' : '10px'}`,
-        borderRadius: '7px', cursor: 'pointer', marginBottom: '1px',
-        background: active ? 'var(--qa-nav-active)' : hov ? 'rgba(124,106,247,0.04)' : 'transparent',
-        border: active ? '1px solid var(--qa-nav-act-bdr)' : '1px solid transparent',
-        borderLeft: active ? '2px solid #7c6af7' : '2px solid transparent',
-        color: active ? C.text : hov ? C.textMid : 'var(--qa-text-faint)',
-        fontSize: '12px', fontWeight: active ? '600' : '400',
+        display: 'flex', alignItems: 'center',
+        gap: collapsed ? 0 : '12px',
+        justifyContent: collapsed ? 'center' : 'flex-start',
+        padding: collapsed ? '10px 0' : `9px 10px 9px ${indent ? '22px' : '10px'}`,
+        borderRadius: '8px', cursor: 'pointer', marginBottom: '2px',
+        background: active ? 'rgba(124,106,247,0.12)' : hov ? 'rgba(124,106,247,0.06)' : 'transparent',
+        color: active ? 'var(--qa-accent)' : hov ? 'var(--qa-text)' : 'var(--qa-text-mid)',
+        fontSize: '12px', fontWeight: active ? 600 : 500,
         fontFamily: "'JetBrains Mono', monospace",
-        transition: 'all 0.15s',
+        transition: 'background 0.15s, color 0.15s',
       }}
     >
-      <span style={{ fontSize: '11px', flexShrink: 0 }}>{icon}</span>
-      {label}
+      <span style={{ fontSize: '13px', flexShrink: 0, width: '18px', textAlign: 'center' }}>{icon}</span>
+      {!collapsed && label}
     </div>
   );
 }
@@ -129,27 +128,37 @@ export function Sidebar({ page, setPage, user, insideProject, onBackToProjects, 
   return (
     <>
     <div style={{
-      width: collapsed ? '0' : '210px',
+      width: collapsed ? '0' : '220px',
       height: '100vh',
-      background: 'var(--qa-sidebar)',
-      borderRight: collapsed ? 'none' : '1px solid var(--qa-sidebar-bdr)',
+      background: 'var(--qa-surface)',
+      borderRight: collapsed ? 'none' : '1px solid rgba(255,255,255,0.06)',
       display: 'flex', flexDirection: 'column', flexShrink: 0,
       position: 'fixed', top: 0, left: 0, zIndex: 100,
       overflowX: 'hidden', overflowY: 'auto',
       transition: 'width 0.25s ease',
     }}>
-      <div style={{ width: '210px', display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <div style={{ width: '220px', display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         {/* Logo */}
-        <div style={{ padding: '20px 16px 16px', borderBottom: '1px solid var(--qa-sidebar-bdr)' }}>
-          <div style={{ fontSize: '9px', letterSpacing: '.3em', color: 'var(--qa-text-faint)', fontFamily: "'JetBrains Mono', monospace", marginBottom: '5px', textTransform: 'uppercase' }}>O2H TECHNOLOGY</div>
-          <div style={{ fontSize: '15px', fontWeight: '800', fontFamily: "'JetBrains Mono', monospace", color: C.text, letterSpacing: '-0.3px' }}>Quality Analysis</div>
+        <div style={{ padding: '18px 16px 14px' }}>
+          <div style={{ fontSize: '9px', letterSpacing: '0.2em', color: 'var(--qa-text-faint)', fontFamily: "'JetBrains Mono', monospace", marginBottom: '3px', textTransform: 'uppercase' }}>O2H Technology</div>
+          <div style={{ fontSize: '15px', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: 'var(--qa-text)', letterSpacing: '-0.3px' }}>Quality Analysis</div>
         </div>
 
+        {/* Divider */}
+        <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '8px 0' }} />
+
         {/* User */}
-        <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--qa-sidebar-bdr)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
           {/* Avatar */}
           <div
-            style={{ position: 'relative', flexShrink: 0, cursor: isQAUser ? 'pointer' : 'default' }}
+            style={{
+              position: 'relative', flexShrink: 0,
+              width: '36px', height: '36px', borderRadius: '50%',
+              border: `2px solid ${avatarHov && isQAUser ? 'var(--qa-accent)' : 'rgba(124,106,247,0.22)'}`,
+              overflow: 'hidden',
+              cursor: isQAUser ? 'pointer' : 'default',
+              transition: 'border-color .15s',
+            }}
             onClick={() => isQAUser && setShowAvatarModal(true)}
             onMouseEnter={() => setAvatarHov(true)}
             onMouseLeave={() => setAvatarHov(false)}
@@ -157,27 +166,39 @@ export function Sidebar({ page, setPage, user, insideProject, onBackToProjects, 
           >
             {avatarSrc ? (
               <img src={avatarSrc} alt={user.name}
-                style={{ width: '34px', height: '34px', borderRadius: '9px', objectFit: 'cover', display: 'block' }} />
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             ) : (
               <div style={{
-                width: '34px', height: '34px', borderRadius: '9px',
+                width: '100%', height: '100%',
                 background: 'linear-gradient(135deg,#7c6af7,#6a5ae0)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '13px', fontWeight: '700', color: '#ffffff',
+                fontSize: '14px', fontWeight: 700, color: '#ffffff',
+                fontFamily: "'JetBrains Mono', monospace",
               }}>{user.name[0]}</div>
             )}
             {isQAUser && avatarHov && (
               <div style={{
-                position: 'absolute', inset: 0, borderRadius: '9px',
+                position: 'absolute', inset: 0,
                 background: 'rgba(0,0,0,0.5)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '10px', color: '#fff', fontFamily: "'JetBrains Mono',monospace",
+                fontSize: '11px', color: '#fff', fontFamily: "'JetBrains Mono',monospace",
               }}>✎</div>
             )}
           </div>
-          <div style={{ overflow: 'hidden' }}>
-            <div style={{ fontSize: '12px', fontWeight: '600', color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</div>
-            <div style={{ fontSize: '9px', color: '#7c6af7', fontFamily: "'JetBrains Mono', monospace", letterSpacing: '.1em', marginTop: '1px' }}>
+          <div style={{ overflow: 'hidden', flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--qa-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: "'JetBrains Mono', monospace", marginBottom: '3px' }}>{user.name}</div>
+            <div style={{
+              display: 'inline-block',
+              padding: '2px 7px',
+              borderRadius: '4px',
+              fontSize: '9px',
+              fontWeight: 600,
+              background: 'rgba(124,106,247,0.12)',
+              color: 'var(--qa-accent)',
+              border: '1px solid rgba(124,106,247,0.22)',
+              fontFamily: "'JetBrains Mono', monospace",
+              letterSpacing: '.05em',
+            }}>
               {user.role === 'admin' ? 'ADMIN' : user.role === 'qa_lead' ? 'QA LEAD' : user.role === 'developer' ? 'DEVELOPER' : 'QA ENGINEER'}
             </div>
             {isQAUser && (
@@ -185,82 +206,84 @@ export function Sidebar({ page, setPage, user, insideProject, onBackToProjects, 
                 onMouseEnter={() => setHovChangePw(true)}
                 onMouseLeave={() => setHovChangePw(false)}
                 style={{
+                  display: 'block', marginTop: '4px',
                   background: 'none', border: 'none',
-                  color: hovChangePw ? C.accent : 'var(--qa-text-mid)',
-                  fontFamily: "'JetBrains Mono',monospace", fontSize: '9px',
-                  cursor: 'pointer', padding: '2px 0 0', textDecoration: 'underline',
-                  textUnderlineOffset: '2px', letterSpacing: '.05em', transition: 'color .15s',
+                  color: hovChangePw ? 'var(--qa-accent)' : 'var(--qa-text-faint)',
+                  fontFamily: "'JetBrains Mono',monospace", fontSize: '10px',
+                  cursor: 'pointer', padding: '0', textDecoration: 'underline',
+                  textUnderlineOffset: '2px', transition: 'color .15s',
                 }}>change password</button>
             )}
           </div>
         </div>
 
+        {/* Divider */}
+        <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '8px 0' }} />
+
         {/* Nav */}
-        <nav style={{ flex: 1, padding: '10px 8px' }}>
+        <nav style={{ flex: 1, padding: '6px 10px' }}>
           <NavItem label="Projects" icon="◈" active={page === 'projects' && !insideProject} onClick={() => { setPage('projects'); onBackToProjects(); }} />
           {insideProject && <>
-            <div style={{ padding: '10px 10px 4px', fontSize: '9px', color: 'var(--qa-text-xfaint)', fontFamily: "'JetBrains Mono', monospace", letterSpacing: '.2em', textTransform: 'uppercase' }}>In Project</div>
+            <div style={{ padding: '12px 10px 6px', fontSize: '9px', color: 'var(--qa-text-xfaint)', fontFamily: "'JetBrains Mono', monospace", letterSpacing: '.2em', textTransform: 'uppercase' }}>In Project</div>
             <NavItem label="Overview"    icon="◉" active={page === 'overview'}   onClick={() => setPage('overview')}   indent />
             <NavItem label="Test Cases"  icon="✓" active={page === 'testcases'}  onClick={() => setPage('testcases')}  indent />
             <NavItem label="Bug Tracker" icon="⬡" active={page === 'bugs'}       onClick={() => setPage('bugs')}       indent />
             <NavItem label="Automation"  icon="▶" active={page === 'automation'} onClick={() => setPage('automation')} indent />
             <NavItem label="Documents"   icon="◫" active={page === 'documents'}  onClick={() => setPage('documents')}  indent />
-            <div style={{ margin: '8px 2px', borderTop: '1px solid var(--qa-sidebar-bdr)' }} />
+            <div style={{ margin: '10px 2px', borderTop: '1px solid rgba(255,255,255,0.06)' }} />
           </>}
           {['admin', 'qa_lead'].includes(user.role) && (
             <NavItem label="Settings" icon="⚙" active={page === 'settings'} onClick={() => { setPage('settings'); if (insideProject) onBackToProjects(); }} />
           )}
         </nav>
 
-        {/* Theme Toggle */}
-        <div style={{ padding: '0 8px', borderTop: '1px solid var(--qa-sidebar-bdr)' }}>
+        {/* Bottom section: theme + sign out + version */}
+        <div style={{ padding: '10px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          {/* Theme Toggle */}
           <div
             onClick={toggleTheme}
             onMouseEnter={() => setHovTheme(true)}
             onMouseLeave={() => setHovTheme(false)}
             style={{
-              display: 'flex', alignItems: 'center', gap: '9px',
-              padding: '8px 10px',
-              margin: '6px 0',
-              borderRadius: '7px', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '12px',
+              padding: '9px 10px',
+              borderRadius: '8px', cursor: 'pointer',
+              marginBottom: '2px',
               background: hovTheme ? 'rgba(124,106,247,0.06)' : 'transparent',
-              border: `1px solid ${hovTheme ? 'rgba(124,106,247,0.2)' : 'transparent'}`,
-              color: hovTheme ? C.accent : 'var(--qa-text-faint)',
-              fontSize: '12px', fontFamily: "'JetBrains Mono', monospace",
-              transition: 'all 0.15s',
+              color: hovTheme ? 'var(--qa-text)' : 'var(--qa-text-mid)',
+              fontSize: '12px', fontWeight: 500, fontFamily: "'JetBrains Mono', monospace",
+              transition: 'background 0.15s, color 0.15s',
             }}
           >
-            <span style={{ fontSize: '13px', flexShrink: 0 }}>{isDark ? '☀️' : '🌙'}</span>
+            <span style={{ fontSize: '13px', flexShrink: 0, width: '18px', textAlign: 'center' }}>{isDark ? '☀' : '☾'}</span>
             {isDark ? 'Light Mode' : 'Dark Mode'}
           </div>
-        </div>
 
-        {/* Sign Out */}
-        <div style={{ padding: '0 8px 0', borderTop: '1px solid var(--qa-sidebar-bdr)' }}>
+          {/* Sign Out */}
           {confirming ? (
             <div style={{
-              margin: '6px 2px 8px',
+              margin: '2px 0',
               background: `${RED}10`,
               border: `1px solid ${RED}30`,
               borderRadius: '8px',
-              padding: '9px 10px',
+              padding: '10px',
               fontFamily: "'JetBrains Mono', monospace",
             }}>
-              <div style={{ fontSize: '10px', color: C.text, marginBottom: '8px', fontWeight: '600' }}>Sign out?</div>
+              <div style={{ fontSize: '10px', color: 'var(--qa-text)', marginBottom: '8px', fontWeight: 600 }}>Sign out?</div>
               <div style={{ display: 'flex', gap: '6px' }}>
                 <button
                   onClick={() => { setConfirming(false); onSignOut(); }}
                   style={{
-                    flex: 1, padding: '5px 0', borderRadius: '6px', border: 'none', cursor: 'pointer',
-                    background: RED, color: '#fff', fontSize: '10px', fontWeight: '700',
+                    flex: 1, padding: '6px 0', borderRadius: '6px', border: 'none', cursor: 'pointer',
+                    background: RED, color: '#fff', fontSize: '10px', fontWeight: 700,
                     fontFamily: "'JetBrains Mono', monospace",
                   }}
                 >Yes</button>
                 <button
                   onClick={() => setConfirming(false)}
                   style={{
-                    flex: 1, padding: '5px 0', borderRadius: '6px', border: `1px solid var(--qa-border-lt)`, cursor: 'pointer',
-                    background: 'var(--qa-nav-active)', color: 'var(--qa-text-faint)', fontSize: '10px', fontWeight: '600',
+                    flex: 1, padding: '6px 0', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer',
+                    background: 'transparent', color: 'var(--qa-text-mid)', fontSize: '10px', fontWeight: 600,
                     fontFamily: "'JetBrains Mono', monospace",
                   }}
                 >No</button>
@@ -272,26 +295,22 @@ export function Sidebar({ page, setPage, user, insideProject, onBackToProjects, 
               onMouseEnter={() => setHovSign(true)}
               onMouseLeave={() => setHovSign(false)}
               style={{
-                display: 'flex', alignItems: 'center', gap: '9px',
-                padding: '8px 10px',
-                margin: '6px 0',
-                borderRadius: '7px', cursor: 'pointer',
-                background: hovSign ? `${RED}10` : 'transparent',
-                border: `1px solid ${hovSign ? RED + '30' : 'transparent'}`,
-                color: hovSign ? RED : 'var(--qa-text-faint)',
-                fontSize: '12px', fontFamily: "'JetBrains Mono', monospace",
-                transition: 'all 0.15s',
-                boxShadow: hovSign ? `0 0 12px ${RED}20` : 'none',
+                display: 'flex', alignItems: 'center', gap: '12px',
+                padding: '9px 10px',
+                borderRadius: '8px', cursor: 'pointer',
+                background: hovSign ? 'rgba(239,68,68,0.08)' : 'transparent',
+                color: hovSign ? RED : 'var(--qa-text-mid)',
+                fontSize: '12px', fontWeight: 500, fontFamily: "'JetBrains Mono', monospace",
+                transition: 'background 0.15s, color 0.15s',
               }}
             >
-              <span style={{ fontSize: '12px', flexShrink: 0 }}>→</span>
+              <span style={{ fontSize: '13px', flexShrink: 0, width: '18px', textAlign: 'center' }}>→</span>
               Sign Out
             </div>
           )}
-        </div>
 
-        <div style={{ padding: '6px 14px 12px' }}>
-          <div style={{ fontSize: '9px', color: 'var(--qa-text-mid)', fontFamily: "'JetBrains Mono', monospace" }}>v1.0.0 · O2H Technology</div>
+          {/* Version */}
+          <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.18)', fontFamily: "'JetBrains Mono', monospace", textAlign: 'center', padding: '10px 8px 2px' }}>v1.0.0 — O2H Technology</div>
         </div>
       </div>
     </div>
@@ -368,25 +387,61 @@ const PROJ_TABS = [
   { id: 'documents',  label: 'Documents',   icon: '◫' },
 ];
 
-export function OverheadTabs({ page, setPage }: { page: string; setPage: (p: string) => void }) {
+function TabBadge({ count }: { count: number | undefined }) {
+  if (count === undefined || count === null) return null;
   return (
-    <div style={{ display: 'flex', gap: '0', padding: '0 32px', borderBottom: '1px solid var(--qa-sidebar-bdr)', background: 'var(--qa-sidebar)', overflowX: 'auto' }}>
-      {PROJ_TABS.map(t => (
-        <button key={t.id} onClick={() => setPage(t.id)} style={{
-          display: 'flex', alignItems: 'center', gap: '6px',
-          padding: '11px 16px',
-          background: 'none', border: 'none',
-          borderBottom: `2px solid ${page === t.id ? '#7c6af7' : 'transparent'}`,
-          color: page === t.id ? C.text : '#4a4a6a',
-          fontFamily: "'JetBrains Mono', monospace",
-          fontSize: '12px', fontWeight: page === t.id ? '600' : '400',
-          cursor: 'pointer', whiteSpace: 'nowrap',
-          transition: 'all 0.15s',
-          marginBottom: '-1px',
-        }}>
-          <span style={{ fontSize: '11px' }}>{t.icon}</span>{t.label}
-        </button>
-      ))}
+    <span style={{
+      background: 'rgba(124,106,247,0.12)',
+      color: 'var(--qa-accent)',
+      borderRadius: '4px',
+      padding: '1px 5px',
+      fontSize: '8px',
+      fontWeight: 700,
+      fontFamily: "'JetBrains Mono', monospace",
+      letterSpacing: '.04em',
+      lineHeight: 1.4,
+    }}>{count}</span>
+  );
+}
+
+export function OverheadTabs({ page, setPage, counts }: { page: string; setPage: (p: string) => void; counts?: { testcases?: number; bugs?: number } }) {
+  const [hov, setHov] = useState<string | null>(null);
+  return (
+    <div style={{
+      display: 'flex', gap: '0',
+      padding: '0 32px',
+      borderBottom: '1px solid rgba(255,255,255,0.06)',
+      background: 'var(--qa-sidebar)',
+      overflowX: 'auto',
+    }}>
+      {PROJ_TABS.map(t => {
+        const active = page === t.id;
+        const isHov = hov === t.id;
+        const badgeCount = t.id === 'testcases' ? counts?.testcases : t.id === 'bugs' ? counts?.bugs : undefined;
+        return (
+          <button key={t.id}
+            onClick={() => setPage(t.id)}
+            onMouseEnter={() => setHov(t.id)}
+            onMouseLeave={() => setHov(null)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '8px',
+              padding: '10px 16px',
+              background: 'none', border: 'none',
+              borderBottom: `2px solid ${active ? 'var(--qa-accent)' : 'transparent'}`,
+              color: active ? 'var(--qa-accent)' : isHov ? 'var(--qa-text)' : 'var(--qa-text-mid)',
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: '12px', fontWeight: active ? 600 : 500,
+              cursor: 'pointer', whiteSpace: 'nowrap',
+              transition: 'color 0.15s, border-color 0.15s',
+              marginBottom: '-1px',
+              letterSpacing: '.01em',
+            }}>
+            <span style={{ fontSize: '11px' }}>{t.icon}</span>
+            {t.label}
+            <TabBadge count={badgeCount} />
+          </button>
+        );
+      })}
     </div>
   );
 }

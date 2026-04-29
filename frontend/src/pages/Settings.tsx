@@ -268,44 +268,92 @@ export function SettingsPage() {
   const currentValues: any[] = (settings as any)[tab] || [];
 
   return (
-    <div style={{ padding: '28px 32px', width: '100%' }} className="fu">
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ margin: '0 0 6px', fontSize: '24px', fontWeight: '800', color: C.text, fontFamily: "'JetBrains Mono',monospace" }}>Settings</h1>
-        <div style={{ fontSize: '11px', color: C.textDim, fontFamily: "'JetBrains Mono',monospace" }}>Manage dropdown chips and status values · Admin & QA Lead only</div>
+    <div style={{ padding: '28px 36px 48px', width: '100%' }} className="fu">
+      <div style={{ marginBottom: '22px' }}>
+        <h1 style={{ margin: '0 0 6px', fontSize: '24px', fontWeight: 600, color: 'var(--qa-text)', fontFamily: "'JetBrains Mono',monospace", letterSpacing: '-0.02em' }}>Settings</h1>
+        <div style={{ fontSize: '12px', color: 'var(--qa-text-mid)', fontFamily: "'JetBrains Mono',monospace" }}>Manage dropdown chips and status values · Admin & QA Lead only</div>
       </div>
 
-      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '22px' }}>
-        {TABS.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} style={{ padding: '6px 13px', borderRadius: '8px', fontSize: '11px', fontWeight: '700', fontFamily: "'JetBrains Mono',monospace", cursor: 'pointer', background: tab === t.id ? `${C.accent}12` : 'var(--qa-input)', border: `1px solid ${tab === t.id ? C.accent + '50' : C.border}`, color: tab === t.id ? C.accent : C.textDim, transition: 'all .15s' }}>{t.l}</button>
-        ))}
+      {/* Pill-style tab switcher */}
+      <div style={{
+        display: 'inline-flex',
+        gap: '2px',
+        background: 'var(--qa-surface)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        borderRadius: '10px',
+        padding: '3px',
+        marginBottom: '22px',
+        flexWrap: 'wrap',
+      }}>
+        {TABS.map(t => {
+          const active = tab === t.id;
+          return (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'var(--qa-text)'; }}
+              onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'var(--qa-text-mid)'; }}
+              style={{
+                padding: '7px 16px',
+                borderRadius: '7px',
+                fontSize: '12px',
+                fontWeight: active ? 600 : 500,
+                fontFamily: "'JetBrains Mono',monospace",
+                cursor: 'pointer',
+                background: active ? 'var(--qa-card)' : 'transparent',
+                border: 'none',
+                color: active ? 'var(--qa-text)' : 'var(--qa-text-mid)',
+                boxShadow: active ? '0 1px 3px rgba(0,0,0,0.15)' : 'none',
+                transition: 'color 0.15s, background 0.15s',
+                letterSpacing: '.01em',
+              }}>{t.l}</button>
+          );
+        })}
       </div>
 
       {tab === 'team' ? (
         <TeamManagement isAdmin={isAdmin} />
       ) : (
         <>
-          <GCard style={{ padding: '20px' }} glow={C.accent}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <span style={{ fontSize: '13px', fontWeight: '700', color: C.text, fontFamily: "'JetBrains Mono',monospace" }}>
+          <div style={{
+            background: 'var(--qa-card)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: '12px',
+            padding: '18px 20px',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--qa-text)', fontFamily: "'JetBrains Mono',monospace" }}>
                 {SETTING_TABS.find(t => t.id === tab)?.l} Values
               </span>
               <Btn sm icon="＋" onClick={() => setShowAdd(true)}>Add Value</Btn>
             </div>
 
             {isLoading
-              ? <div style={{ color: C.textDim, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace" }}>Loading…</div>
-              : <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              ? <div style={{ color: 'var(--qa-text-mid)', fontSize: '12px', fontFamily: "'JetBrains Mono',monospace" }}>Loading…</div>
+              : <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   {currentValues.map((item: any) => (
-                    <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: `${item.color}12`, border: `1px solid ${item.color}35`, borderRadius: '8px', padding: '8px 12px' }}>
-                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: item.color }} />
-                      <span style={{ fontSize: '12px', color: C.text, fontFamily: "'JetBrains Mono',monospace" }}>{item.value}</span>
-                      <button onClick={() => deleteMut.mutate(item.id)} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', fontSize: '12px', padding: '0 0 0 2px', lineHeight: 1 }}>✕</button>
+                    <div key={item.id} style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '8px',
+                      background: `${item.color}1f`,
+                      border: `1px solid ${item.color}38`,
+                      borderRadius: '999px',
+                      padding: '4px 6px 4px 10px',
+                    }}>
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: item.color, display: 'inline-block' }} />
+                      <span style={{ fontSize: '11.5px', color: item.color, fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>{item.value}</span>
+                      <button onClick={() => deleteMut.mutate(item.id)}
+                        onMouseEnter={e => { e.currentTarget.style.opacity = '1'; }}
+                        onMouseLeave={e => { e.currentTarget.style.opacity = '0.6'; }}
+                        style={{
+                          background: 'none', border: 'none', color: 'inherit',
+                          cursor: 'pointer', fontSize: '12px',
+                          padding: '0 4px', lineHeight: 1, opacity: 0.6,
+                          transition: 'opacity .15s',
+                        }}>×</button>
                     </div>
                   ))}
-                  {currentValues.length === 0 && <div style={{ color: C.textMid, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace" }}>No values yet. Add one.</div>}
+                  {currentValues.length === 0 && <div style={{ color: 'var(--qa-text-mid)', fontSize: '12px', fontFamily: "'JetBrains Mono',monospace" }}>No values yet. Add one.</div>}
                 </div>
             }
-          </GCard>
+          </div>
 
           {showAdd && (
             <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }} onClick={e => e.target === e.currentTarget && setShowAdd(false)}>

@@ -1,14 +1,17 @@
 node_modules/
 .env
+.env.local
+.env.production
 dist/
 build/
 .DS_Store
 *.log
 .vercel
-node_modules/
-dist/
-.env
-.env.local
-.env.production
-*.log
-.DS_Store
+
+# QA test artifacts
+Tests/qa-test-screenshots/
+Tests/qa-test-report-headless.txt
+Tests/qa-test-report-visible.txt
+
+# Claude Code local settings
+.claude/settings.local.json

@@ -419,6 +419,7 @@ function ImportTestCasesModal({ projectCode, onClose, onImport }: {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const normalizeRow = (row: any) => {
+    const originalKeys = Object.keys(row).map(k => k.trim());
     const byKey: Record<string, string> = {};
     Object.keys(row).forEach(k => {
       const trimmed = k.trim();
@@ -428,6 +429,7 @@ function ImportTestCasesModal({ projectCode, onClose, onImport }: {
     });
     console.log('[TC Import] Parsed keys:', Object.keys(byKey));
     const get = (...keys: string[]) => { for (const k of keys) { if (byKey[k] !== undefined && byKey[k] !== '') return byKey[k]; } return ''; };
+    const isAgentGenerated = originalKeys.includes('Test Case ID') && originalKeys.includes('Test Case Summary') && originalKeys.includes('Test Case Steps');
     const rawSteps = get('Test Case Steps', 'Steps', 'steps', 'test_case_steps', 'Test Steps', 'test_steps');
     const steps = (() => {
       if (!rawSteps) return [];
@@ -449,7 +451,7 @@ function ImportTestCasesModal({ projectCode, onClose, onImport }: {
       platform: get('Platform', 'platform') || 'Web',
       execution_status: get('Execution Status', 'execution_status') || 'Not Executed',
       test_result: get('Test Result', 'test_result') || 'N/A',
-      is_auto_generated: false,
+      is_auto_generated: isAgentGenerated,
     };
   };
 
@@ -555,6 +557,55 @@ function ImportTestCasesModal({ projectCode, onClose, onImport }: {
   );
 }
 
+// ── parseBugReportMD ─────────────────────────────────────────
+function parseBugReportMD(content: string) {
+  const bugs: any[] = [];
+  const entries = content.split(/^### BUG-\d+/m).slice(1);
+  const headers = content.match(/^### BUG-\d+ — (.+)$/mg) || [];
+
+  entries.forEach((entry, index) => {
+    const get = (field: string): string => {
+      const regex = new RegExp(`^- ${field}:\\s*(.+)$`, 'm');
+      const match = entry.match(regex);
+      return match ? match[1].trim() : '';
+    };
+
+    const headerMatch = headers[index]?.match(/### BUG-\d+ — (.+)/);
+    const title = headerMatch ? headerMatch[1].trim() : '';
+
+    const stepsRaw = get('Steps to Reproduce');
+    const steps = stepsRaw ? stepsRaw.split('|').map(s => s.trim()).filter(Boolean) : [];
+
+    const severity = get('Severity');
+    const priorityMap: Record<string, string> = { Critical: 'Critical', High: 'High', Medium: 'Medium', Low: 'Low' };
+
+    bugs.push({
+      summary: title,
+      module: get('Module'),
+      status: 'Open',
+      priority: priorityMap[severity] || 'Medium',
+      developer_comment: '',
+      qa_comment: [
+        'Imported from automated test run.',
+        `Test Case ID: ${get('Test Case ID')}`,
+        `Role Affected: ${get('Role Affected')}`,
+        `Environment: ${get('Environment URL')}`,
+        `Expected: ${get('Expected Result')}`,
+        `Actual: ${get('Actual Result')}`,
+        steps.length ? `Steps: ${steps.map((s, i) => `${i + 1}. ${s}`).join(' ')}` : '',
+      ].filter(Boolean).join('\n'),
+      ba_comment: '',
+      assignee: '',
+      developed_by: '',
+      qa_status: 'Open',
+      resources: [],
+      is_from_automation: true,
+    });
+  });
+
+  return bugs;
+}
+
 // ── ImportBugsModal ───────────────────────────────────────────
 function ImportBugsModal({ projectCode, onClose, onImport }: {
   projectCode: string;
@@ -594,7 +645,19 @@ function ImportBugsModal({ projectCode, onClose, onImport }: {
   const handleFile = (file: File) => {
     setError('');
     const reader = new FileReader();
-    if (file.name.endsWith('.csv')) {
+    const ext = file.name.split('.').pop()?.toLowerCase();
+
+    if (ext === 'md') {
+      reader.onload = e => {
+        const parsed = parseBugReportMD(e.target?.result as string);
+        if (!parsed.length) {
+          setError('No bug entries found. Make sure file uses ### BUG-001 format.');
+          return;
+        }
+        setPreview(parsed);
+      };
+      reader.readAsText(file);
+    } else if (ext === 'csv') {
       reader.onload = e => {
         const result = Papa.parse(e.target?.result as string, { header: true, skipEmptyLines: true });
         setPreview((result.data as any[]).map(normalizeBugRow));
@@ -633,11 +696,11 @@ function ImportBugsModal({ projectCode, onClose, onImport }: {
   return (
     <Modal title={`Import Bugs — ${projectCode}`} onClose={onClose} wide>
       <div style={{ marginBottom: '16px' }}>
-        <div style={{ fontSize: '10px', fontWeight: '700', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '8px' }}>Upload File (CSV or XLSX)</div>
+        <div style={{ fontSize: '10px', fontWeight: '700', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '8px' }}>Upload File (CSV, XLSX or MD)</div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ''; }} />
+          <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls,.md" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ''; }} />
           <Btn sm v="ghost" onClick={() => fileRef.current?.click()}>📂 Choose File</Btn>
-          <span style={{ fontSize: '11px', color: C.textDim, fontFamily: "'JetBrains Mono',monospace" }}>CSV or Excel (.xlsx)</span>
+          <span style={{ fontSize: '11px', color: C.textDim, fontFamily: "'JetBrains Mono',monospace" }}>CSV, Excel or Markdown (.md) — Agent bug-report.md</span>
         </div>
       </div>
       <div style={{ marginBottom: '16px' }}>
@@ -661,7 +724,7 @@ function ImportBugsModal({ projectCode, onClose, onImport }: {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', fontFamily: "'JetBrains Mono',monospace" }}>
               <thead>
                 <tr style={{ background: 'rgba(255,255,255,0.03)', position: 'sticky', top: 0 }}>
-                  {['Module', 'Summary', 'Assignee', 'Status', 'QA Status'].map(h => (
+                  {['Module', 'Summary', 'Priority', 'Status'].map(h => (
                     <th key={h} style={{ padding: '8px 10px', textAlign: 'left', color: C.textMid, fontWeight: '600', letterSpacing: '.08em', textTransform: 'uppercase', fontSize: '10px', whiteSpace: 'nowrap', borderBottom: `1px solid ${C.border}` }}>{h}</th>
                   ))}
                 </tr>
@@ -669,11 +732,10 @@ function ImportBugsModal({ projectCode, onClose, onImport }: {
               <tbody>
                 {preview.map((row, i) => (
                   <tr key={i} style={{ borderBottom: i < preview.length - 1 ? `1px solid ${C.border}` : 'none' }}>
-                    <td style={{ padding: '6px 10px', color: C.textMid, whiteSpace: 'nowrap' }}>{row.module}</td>
-                    <td style={{ padding: '6px 10px', color: C.text, maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.summary}</td>
-                    <td style={{ padding: '6px 10px', color: C.textDim, whiteSpace: 'nowrap' }}>{row.assignee || '—'}</td>
-                    <td style={{ padding: '6px 10px', whiteSpace: 'nowrap' }}><Chip text={row.status} color={STATUS_COLORS[row.status] || C.textDim} sm /></td>
-                    <td style={{ padding: '6px 10px', whiteSpace: 'nowrap' }}><Chip text={row.qa_status} color={STATUS_COLORS[row.qa_status] || C.textDim} sm /></td>
+                    <td style={{ padding: '6px 10px', color: C.textMid, whiteSpace: 'nowrap' }}>{row.module || '—'}</td>
+                    <td style={{ padding: '6px 10px', color: C.text, maxWidth: '260px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.summary}</td>
+                    <td style={{ padding: '6px 10px', whiteSpace: 'nowrap' }}>{row.priority ? <Chip text={row.priority} color={PRIORITY_COLORS[row.priority] || C.textDim} sm /> : <span style={{ color: C.textDim, fontSize: '11px' }}>—</span>}</td>
+                    <td style={{ padding: '6px 10px', whiteSpace: 'nowrap' }}><Chip text={row.status || 'Open'} color={STATUS_COLORS[row.status] || C.textDim} sm /></td>
                   </tr>
                 ))}
               </tbody>
@@ -719,6 +781,12 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
   const [draggedBugId, setDraggedBugId] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [uploadingScriptId, setUploadingScriptId] = useState<string | null>(null);
+  const [addDoc, setAddDoc] = useState(false);
+  const [docLabel, setDocLabel] = useState('');
+  const [docUrl, setDocUrl] = useState('');
+  const [docCategory, setDocCategory] = useState('figma');
+  const [docType, setDocType] = useState('link');
+  const [filterAutoGen, setFilterAutoGen] = useState<'all' | 'manual' | 'agent'>('all');
 
   const KANBAN_STATUSES = [
     { label: 'Open', color: '#ef4444' },
@@ -857,6 +925,12 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
     mutationFn: (id: string) => deleteDocument(id),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['documents', project.id] }); setConfirmDelete(null); toast.success('Document deleted'); },
     onError: () => toast.error('Failed to delete'),
+  });
+
+  const addDocMut = useMutation({
+    mutationFn: (data: any) => addDocument(data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['documents', project.id] }); setAddDoc(false); setDocLabel(''); setDocUrl(''); setDocCategory('figma'); setDocType('link'); toast.success('Document added'); },
+    onError: () => toast.error('Failed to add document'),
   });
 
   const handleDeleteConfirm = () => {
@@ -1128,82 +1202,135 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
   return (
     <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }} className="fu">
       {/* Project header */}
-      <div style={{ padding: '13px 32px', borderBottom: '1px solid var(--qa-sidebar-bdr)', background: 'var(--qa-sidebar)', position: 'sticky', top: 0, zIndex: 6 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          <button onClick={onBack} style={{ background: 'rgba(124,106,247,0.08)', border: '1px solid rgba(124,106,247,0.2)', color: '#7c6af7', cursor: 'pointer', fontFamily: "'JetBrains Mono',monospace", fontSize: '11px', fontWeight: '600', borderRadius: '7px', padding: '5px 12px' }}>← Projects</button>
-          <span style={{ color: C.border }}>│</span>
-          {canEdit && editingCode ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <input
-                autoFocus
-                value={codeValue}
-                onChange={e => setCodeValue(e.target.value.toUpperCase().slice(0, 10))}
-                onKeyDown={e => {
-                  if (e.key === 'Escape') { setCodeValue(project.project_code); setEditingCode(false); }
-                  if (e.key === 'Enter') codeUpdateMut.mutate(codeValue);
-                }}
-                style={{ background: 'var(--qa-input)', border: `1px solid ${C.accent}`, borderRadius: '6px', padding: '4px 10px', color: C.accent, fontSize: '11px', fontFamily: "'JetBrains Mono',monospace", width: '100px', outline: 'none' }}
-              />
-              <Btn sm onClick={() => codeUpdateMut.mutate(codeValue)} disabled={codeUpdateMut.isPending || codeValue.length < 2}>Save</Btn>
-            </div>
-          ) : (
-            <div onClick={canEdit ? () => setEditingCode(true) : undefined} style={{ cursor: canEdit ? 'pointer' : 'default' }}>
-              <Chip text={codeValue} color={C.accent} />
-            </div>
-          )}
-          <span style={{ fontSize: '16px', fontWeight: '800', color: C.text, fontFamily: "'JetBrains Mono',monospace" }}>{project.name}</span>
-          <div ref={statusDropdownRef} style={{ position: 'relative' }}>
-            <div onClick={canEdit ? () => setShowStatusDropdown(v => !v) : undefined} style={{ cursor: canEdit ? 'pointer' : 'default' }}>
-              <Chip text={STATUS_LABELS[localStatus] || localStatus} color={STATUS_COLORS[localStatus]} />
-            </div>
-            {canEdit && showStatusDropdown && (
-              <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 50, background: 'var(--qa-modal)', border: `1px solid ${C.border}`, borderRadius: '10px', padding: '6px', minWidth: '140px' }}>
-                {[
-                  { v: 'active', l: 'Active', c: C.green },
-                  { v: 'in_review', l: 'In Review', c: C.yellow },
-                  { v: 'on_hold', l: 'On Hold', c: '#fb923c' },
-                  { v: 'completed', l: 'Completed', c: C.textDim },
-                ].map(opt => (
-                  <div
-                    key={opt.v}
-                    onClick={() => { statusMut.mutate(opt.v); setShowStatusDropdown(false); }}
-                    style={{ padding: '8px 14px', fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", cursor: 'pointer', color: opt.c, borderRadius: '6px' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
-                  >
-                    {opt.l}
+      <div style={{ padding: '20px 32px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'var(--qa-sidebar)', position: 'sticky', top: 0, zIndex: 6 }}>
+        <button onClick={onBack}
+          onMouseEnter={e => { e.currentTarget.style.color = 'var(--qa-accent)'; }}
+          onMouseLeave={e => { e.currentTarget.style.color = 'var(--qa-text-mid)'; }}
+          style={{ background: 'none', border: 'none', color: 'var(--qa-text-mid)', cursor: 'pointer', fontFamily: "'JetBrains Mono',monospace", fontSize: '11px', padding: '0', marginBottom: '14px', transition: 'color .15s' }}>← All projects</button>
+
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+          {/* Left: title + inline chips */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 700, color: 'var(--qa-text)', fontFamily: "'JetBrains Mono',monospace", letterSpacing: '-0.02em', lineHeight: 1.2 }}>{project.name}</h1>
+              {canEdit && editingCode ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <input autoFocus value={codeValue}
+                    onChange={e => setCodeValue(e.target.value.toUpperCase().slice(0, 10))}
+                    onKeyDown={e => {
+                      if (e.key === 'Escape') { setCodeValue(project.project_code); setEditingCode(false); }
+                      if (e.key === 'Enter') codeUpdateMut.mutate(codeValue);
+                    }}
+                    style={{ background: 'var(--qa-input)', border: `1px solid ${C.accent}`, borderRadius: '6px', padding: '4px 10px', color: C.accent, fontSize: '11px', fontFamily: "'JetBrains Mono',monospace", width: '100px', outline: 'none' }} />
+                  <Btn sm onClick={() => codeUpdateMut.mutate(codeValue)} disabled={codeUpdateMut.isPending || codeValue.length < 2}>Save</Btn>
+                </div>
+              ) : (
+                <span onClick={canEdit ? () => setEditingCode(true) : undefined}
+                  style={{
+                    padding: '3px 8px', borderRadius: '6px',
+                    background: 'rgba(124,106,247,0.12)', border: '1px solid rgba(124,106,247,0.22)',
+                    color: 'var(--qa-accent)', fontSize: '11px', fontWeight: 700,
+                    fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.02em',
+                    cursor: canEdit ? 'pointer' : 'default',
+                  }}>{codeValue}</span>
+              )}
+              <span style={{
+                padding: '3px 8px', borderRadius: '6px',
+                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)',
+                color: 'var(--qa-text-mid)', fontSize: '10.5px', fontWeight: 600,
+                fontFamily: "'JetBrains Mono',monospace",
+              }}>{APP_TYPE_ICON[project.app_type]} {project.app_type?.toUpperCase()}</span>
+              <div ref={statusDropdownRef} style={{ position: 'relative' }}>
+                <div onClick={canEdit ? () => setShowStatusDropdown(v => !v) : undefined} style={{ cursor: canEdit ? 'pointer' : 'default' }}>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '6px',
+                    padding: '3px 10px 3px 8px', borderRadius: '999px',
+                    background: `${STATUS_COLORS[localStatus]}1f`,
+                    color: STATUS_COLORS[localStatus],
+                    border: `1px solid ${STATUS_COLORS[localStatus]}38`,
+                    fontSize: '10.5px', fontWeight: 600,
+                    fontFamily: "'JetBrains Mono',monospace",
+                  }}>
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: STATUS_COLORS[localStatus] }} />
+                    {STATUS_LABELS[localStatus] || localStatus}
+                  </span>
+                </div>
+                {canEdit && showStatusDropdown && (
+                  <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 50, background: 'var(--qa-modal)', border: `1px solid ${C.border}`, borderRadius: '10px', padding: '6px', minWidth: '140px' }}>
+                    {[
+                      { v: 'active', l: 'Active', c: C.green },
+                      { v: 'in_review', l: 'In Review', c: C.yellow },
+                      { v: 'on_hold', l: 'On Hold', c: '#fb923c' },
+                      { v: 'completed', l: 'Completed', c: C.textDim },
+                    ].map(opt => (
+                      <div key={opt.v}
+                        onClick={() => { statusMut.mutate(opt.v); setShowStatusDropdown(false); }}
+                        style={{ padding: '8px 14px', fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", cursor: 'pointer', color: opt.c, borderRadius: '6px' }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)'; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>{opt.l}</div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
-            )}
+              {readOnly && <Chip text="Read Only" color={C.yellow} sm />}
+            </div>
+
+            {/* Meta row */}
+            <div style={{ fontSize: '11px', color: 'var(--qa-text-mid)', fontFamily: "'JetBrains Mono',monospace", display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+              {project.created_by_user && <>
+                <span>👤 Owner: <span style={{ color: 'var(--qa-text)' }}>{project.created_by_user.name}</span></span>
+                <span style={{ opacity: 0.4 }}>·</span>
+              </>}
+              <span>👥 {1 + (project.additional_qas?.length || 0)} QA{(project.additional_qas?.length || 0) > 0 ? 's' : ''}</span>
+              {project.updated_at && <>
+                <span style={{ opacity: 0.4 }}>·</span>
+                <span>📅 Updated {new Date(project.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</span>
+              </>}
+            </div>
           </div>
-          <Chip text={`${APP_TYPE_ICON[project.app_type]} ${project.app_type?.toUpperCase()}`} color={C.blue} />
-          {readOnly && <Chip text="Read Only" color={C.yellow} />}
+
+          {/* Right: actions */}
           {canReassign && (
-            <Btn sm v="ghost" onClick={() => { setReassignOwnerId(''); setReassignAction(null); setShowReassign(true); }}>Manage QA</Btn>
+            <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+              <Btn sm v="ghost" onClick={() => { setReassignOwnerId(''); setReassignAction(null); setShowReassign(true); }}>↻ Manage QA</Btn>
+            </div>
           )}
         </div>
       </div>
-      <OverheadTabs page={page} setPage={setPage} />
+      <OverheadTabs page={page} setPage={setPage} counts={{ testcases: testCases.length || undefined, bugs: bugs.length || undefined }} />
 
       <div style={{ padding: '28px 32px', width: '100%', flex: 1 }}>
 
         {/* OVERVIEW */}
         {page === 'overview' && (
           <div className="fu">
-            <h3 style={{ margin: '0 0 20px', fontSize: '18px', fontWeight: '700', color: C.text, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '-0.3px' }}>Overview</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(175px,1fr))', gap: '14px', marginBottom: '24px' }}>
-              {[
-                { l: 'Test Cases', v: tcFetched ? testCases.length : (project.test_case_count || 0), c: C.accent },
-                { l: 'Open Bugs', v: bugsFetched ? bugs.length : (project.bug_count || 0), c: C.red },
-                { l: 'Assigned QAs', v: 1 + (project.additional_qas?.length || 0), c: C.purple },
-              ].map(s => (
-                <GCard key={s.l} style={{ padding: '18px 20px' }} glow={s.c}>
-                  <div style={{ fontSize: '28px', fontWeight: '800', color: s.c, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '-1px' }}>{s.v}</div>
-                  <div style={{ fontSize: '11px', color: C.textMid, marginTop: '4px' }}>{s.l}</div>
-                </GCard>
-              ))}
-            </div>
+            {(() => {
+              const tcCount = tcFetched ? testCases.length : (project.test_case_count || 0);
+              const bugCount = bugsFetched ? bugs.length : (project.bug_count || 0);
+              const passCount = tcFetched ? testCases.filter((t: any) => t.test_result === 'Pass').length : 0;
+              const passRate = tcCount > 0 ? Math.round((passCount / tcCount) * 100) : 0;
+              const openBugs = bugsFetched ? bugs.filter((b: any) => b.status === 'Open' || b.status === 'In Progress').length : bugCount;
+              return (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: '14px', marginBottom: '22px' }}>
+                  {[
+                    { l: 'Test Cases', v: tcCount, c: 'var(--qa-accent)' },
+                    { l: 'Total Bugs', v: bugCount, c: '#ef4444' },
+                    { l: 'Pass Rate', v: `${passRate}%`, c: '#10b981' },
+                    { l: 'Open Bugs', v: openBugs, c: '#f59e0b' },
+                  ].map(s => (
+                    <div key={s.l} style={{
+                      background: 'var(--qa-card)',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                      borderRadius: '12px',
+                      padding: '18px 20px',
+                    }}>
+                      <div style={{ fontSize: '9.5px', color: 'var(--qa-text-mid)', fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: '10px', fontWeight: 600 }}>{s.l}</div>
+                      <div style={{ fontSize: '30px', fontWeight: 700, color: s.c, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '-0.02em', lineHeight: 1 }}>{s.v}</div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
             {/* QA Assignments */}
             <GCard style={{ padding: '20px', marginBottom: '16px' }} glow={C.accent}>
               <div style={{ fontSize: '10px', fontWeight: '700', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '12px' }}>🧪 QA Engineers</div>
@@ -1304,6 +1431,22 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', background: 'var(--qa-surface)', border: '1px solid var(--qa-border-soft)', borderRadius: '8px', overflow: 'hidden', padding: '3px', gap: '2px' }}>
+                  {([{ value: 'all', label: 'All' }, { value: 'manual', label: '✏ Manual' }, { value: 'agent', label: '🤖 Agent' }] as const).map(({ value, label }) => (
+                    <button
+                      key={value}
+                      onClick={() => setFilterAutoGen(value)}
+                      style={{
+                        padding: '4px 10px', borderRadius: '6px', border: 'none',
+                        background: filterAutoGen === value ? 'var(--qa-card)' : 'none',
+                        color: filterAutoGen === value ? 'var(--qa-text)' : 'var(--qa-text-muted)',
+                        fontFamily: "'JetBrains Mono',monospace", fontSize: '10px', cursor: 'pointer',
+                        transition: 'all 0.15s',
+                        boxShadow: filterAutoGen === value ? '0 1px 3px rgba(0,0,0,0.2)' : 'none',
+                      }}
+                    >{label}</button>
+                  ))}
+                </div>
                 <div ref={exportMenuRef} style={{ position: 'relative' }}>
                   <Btn sm v="ghost" onClick={() => setShowExportMenu(v => !v)}>Export ▾</Btn>
                   {showExportMenu && (
@@ -1322,6 +1465,13 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                 {canEdit && <Btn sm onClick={() => setShowAddChoice(true)} icon="＋">New Test Case</Btn>}
               </div>
             </div>
+            {(() => {
+              const displayedTestCases = (testCases as any[]).filter((tc: any) => {
+                if (filterAutoGen === 'manual') return !tc.is_auto_generated;
+                if (filterAutoGen === 'agent') return tc.is_auto_generated;
+                return true;
+              });
+              return (
             <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', borderRadius: '16px' }}>
               <GCard style={{ minWidth: '880px' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
@@ -1344,15 +1494,22 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                     </tr>
                   </thead>
                   <tbody>
-                    {testCases.map((t: any, i: number) => {
+                    {displayedTestCases.map((t: any, i: number) => {
                       const isOpen = expandedTC === t.id;
                       return (
                         <>
                           <tr key={t.id} onClick={() => setExpandedTC(isOpen ? null : t.id)}
-                            style={{ borderBottom: !isOpen && i < testCases.length - 1 ? `1px solid ${C.border}` : 'none', cursor: 'pointer', background: isOpen ? 'rgba(124,106,247,0.04)' : 'transparent', transition: 'background .15s' }}
+                            style={{ borderBottom: !isOpen && i < displayedTestCases.length - 1 ? `1px solid ${C.border}` : 'none', cursor: 'pointer', background: isOpen ? 'rgba(124,106,247,0.04)' : 'transparent', transition: 'background .15s' }}
                             onMouseEnter={e => { if (!isOpen) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.02)'; }}
                             onMouseLeave={e => { if (!isOpen) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
-                            <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}><span style={{ fontSize: '11px', color: C.accent, fontFamily: "'JetBrains Mono',monospace", fontWeight: '700' }}>{t.test_case_id}</span></td>
+                            <td style={{ padding: '12px 14px', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <span style={{ fontSize: '11px', color: C.accent, fontFamily: "'JetBrains Mono',monospace", fontWeight: '700' }}>{t.test_case_id}</span>
+                                {t.is_auto_generated && (
+                                  <span title="Auto-generated by QA Agent" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '16px', height: '16px', borderRadius: '4px', background: 'rgba(124, 106, 247, 0.15)', border: '1px solid rgba(124, 106, 247, 0.3)', fontSize: '10px', cursor: 'default', flexShrink: 0 }}>🤖</span>
+                                )}
+                              </div>
+                            </td>
                             <td style={{ padding: '12px 14px', wordBreak: 'break-word', whiteSpace: 'normal', lineHeight: '1.4' }}><span style={{ fontSize: '12px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace" }}>{t.module}</span></td>
                             <td style={{ padding: '12px 14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={t.summary}><span style={{ fontSize: '12px', color: C.text }}>{t.summary}</span></td>
                             <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}><Chip text={t.priority} color={PRIORITY_COLORS[t.priority]} /></td>
@@ -1377,11 +1534,13 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                 </table>
               </GCard>
             </div>
+              ); })()}
             {testCases.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '60px 20px', fontFamily: "'JetBrains Mono',monospace" }}>
-                <div style={{ fontSize: '28px', marginBottom: '12px' }}>✓</div>
-                <div style={{ color: C.textMid, fontWeight: '600', marginBottom: '6px', fontSize: '13px' }}>No test cases yet</div>
-                <div style={{ fontSize: '11px', color: 'var(--qa-text-faint)' }}>Click "New Test Case" to add your first one</div>
+              <div style={{ textAlign: 'center', padding: '80px 20px', fontFamily: "'JetBrains Mono',monospace" }}>
+                <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: `${C.green}10`, border: `1px solid ${C.green}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', margin: '0 auto 16px' }}>✓</div>
+                <div style={{ color: C.text, fontWeight: '600', marginBottom: '6px', fontSize: '14px' }}>No test cases yet</div>
+                <div style={{ fontSize: '12px', color: 'var(--qa-text-faint)', maxWidth: '260px', margin: '0 auto 20px', lineHeight: 1.6 }}>Add your first test case manually or import from CSV / XLSX / Google Sheets.</div>
+                {!readOnly && <button onClick={() => setShowAddChoice(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 20px', borderRadius: '8px', background: C.green, color: '#fff', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: '700', fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.02em' }}>＋ Add Test Case</button>}
               </div>
             )}
             {addTC && (
@@ -1454,14 +1613,16 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
               </div>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 {/* Table / Kanban toggle */}
-                <div style={{ display: 'flex', gap: '2px', background: 'var(--qa-input)', padding: '3px', borderRadius: '8px', border: `1px solid ${C.border}` }}>
+                <div style={{ display: 'inline-flex', gap: '2px', background: 'var(--qa-surface)', padding: '3px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
                   {(['table', 'kanban'] as const).map(v => (
                     <button key={v} onClick={() => setBugView(v)} style={{
-                      padding: '4px 10px', borderRadius: '5px', border: 'none',
-                      background: bugView === v ? C.accent : 'transparent',
-                      color: bugView === v ? '#fff' : 'var(--qa-text-faint)',
-                      fontFamily: "'JetBrains Mono',monospace", fontSize: '10px', fontWeight: '600',
-                      cursor: 'pointer', transition: 'all .15s', letterSpacing: '.04em',
+                      padding: '5px 12px', borderRadius: '6px', border: 'none',
+                      background: bugView === v ? 'var(--qa-card)' : 'transparent',
+                      color: bugView === v ? 'var(--qa-text)' : 'var(--qa-text-mid)',
+                      fontFamily: "'JetBrains Mono',monospace", fontSize: '11px', fontWeight: bugView === v ? 600 : 500,
+                      cursor: 'pointer', transition: 'background .15s, color .15s',
+                      boxShadow: bugView === v ? '0 1px 3px rgba(0,0,0,0.2)' : 'none',
+                      letterSpacing: '.02em',
                     }}>{v === 'table' ? '≡ Table' : '⊞ Kanban'}</button>
                   ))}
                 </div>
@@ -1576,7 +1737,23 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                                 {['Open','In Progress','Fixed','Fixed (To Test)','Closed',"Won't Fix","Won't Fix (Invalid)"].map(s => <option key={s} value={s} style={{ background: C.card, color: C.text }}>{s}</option>)}
                               </select>
                             </td>
-                            <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}><Chip text={b.qa_status || 'Open'} color={QA_STATUS_COLORS[b.qa_status] || C.textDim} /></td>
+                            <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
+                              {(() => {
+                                const s = b.qa_status || 'Open';
+                                const col = QA_STATUS_COLORS[s] || C.textDim;
+                                return (
+                                  <span style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                    padding: '3px 10px 3px 8px', borderRadius: '999px',
+                                    background: `${col}1f`, color: col, border: `1px solid ${col}38`,
+                                    fontSize: '10.5px', fontWeight: 600, fontFamily: "'JetBrains Mono',monospace",
+                                  }}>
+                                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: col }} />
+                                    {s}
+                                  </span>
+                                );
+                              })()}
+                            </td>
                             <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 {b.developer_comment && <Chip text="Dev ✓" color={C.purple} sm />}
@@ -1597,10 +1774,11 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
               </GCard>
             </div>}
             {bugs.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '60px 20px', fontFamily: "'JetBrains Mono',monospace" }}>
-                <div style={{ fontSize: '28px', marginBottom: '12px' }}>🐛</div>
-                <div style={{ color: C.textMid, fontWeight: '600', marginBottom: '6px', fontSize: '13px' }}>No bugs logged</div>
-                <div style={{ fontSize: '11px', color: 'var(--qa-text-faint)' }}>Click "Log Bug" to report the first one</div>
+              <div style={{ textAlign: 'center', padding: '80px 20px', fontFamily: "'JetBrains Mono',monospace" }}>
+                <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: `${C.red}10`, border: `1px solid ${C.red}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', margin: '0 auto 16px' }}>🐛</div>
+                <div style={{ color: C.text, fontWeight: '600', marginBottom: '6px', fontSize: '14px' }}>No bugs logged</div>
+                <div style={{ fontSize: '12px', color: 'var(--qa-text-faint)', maxWidth: '260px', margin: '0 auto 20px', lineHeight: 1.6 }}>All clear! Log a bug when you spot an issue in this project.</div>
+                {!readOnly && <button onClick={() => setAddBug(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 20px', borderRadius: '8px', background: C.red, color: '#fff', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: '700', fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.02em' }}>＋ Log Bug</button>}
               </div>
             )}
             {addBug && (
@@ -1686,7 +1864,13 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                   </div>
                 </GCard>
               ))}
-              {(scripts as any[]).length === 0 && <div style={{ color: C.textMid, fontFamily: "'JetBrains Mono',monospace", fontSize: '12px' }}>No scripts yet. They are auto-created when you create a project.</div>}
+              {(scripts as any[]).length === 0 && (
+                <div style={{ textAlign: 'center', padding: '80px 20px', fontFamily: "'JetBrains Mono',monospace", gridColumn: '1 / -1' }}>
+                  <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: `${C.purple}10`, border: `1px solid ${C.purple}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', margin: '0 auto 16px' }}>⚡</div>
+                  <div style={{ color: C.text, fontWeight: '600', marginBottom: '6px', fontSize: '14px' }}>No automation scripts</div>
+                  <div style={{ fontSize: '12px', color: 'var(--qa-text-faint)', maxWidth: '280px', margin: '0 auto', lineHeight: 1.6 }}>Scripts are auto-created when you create a project. If missing, try re-saving the project.</div>
+                </div>
+              )}
             </div>
 
           </div>
@@ -1697,33 +1881,60 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
           <div className="fu">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: C.text, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '-0.3px' }}>Documents</h3>
-              {canEdit && <Btn sm icon="＋">Add Document</Btn>}
+              {canEdit && <Btn sm icon="＋" onClick={() => setAddDoc(true)}>Add Document</Btn>}
             </div>
-            {['figma','frd','additional'].map(cat => {
-              const catDocs = documents.filter((d: any) => d.doc_category === cat);
-              const catLabel: Record<string, string> = { figma: '🎨 Figma', frd: '📄 FRD', additional: '📁 Additional Documents' };
-              return (
-                <div key={cat} style={{ marginBottom: '20px' }}>
-                  <div style={{ fontSize: '10px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: '8px' }}>{catLabel[cat]}</div>
-                  {catDocs.length === 0
-                    ? <div style={{ fontSize: '12px', color: 'var(--qa-text-faint)', fontFamily: "'JetBrains Mono',monospace", padding: '8px 0' }}>— Not added yet</div>
-                    : catDocs.map((d: any) => (
-                      <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'rgba(255,255,255,.02)', border: `1px solid ${C.border}`, borderRadius: '10px', marginBottom: '6px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <span style={{ fontSize: '16px' }}>{d.type === 'link' ? '🔗' : '📑'}</span>
-                          <span style={{ fontSize: '13px', color: C.text }}>{d.label}</span>
-                          <Chip text={d.type} color={d.type === 'link' ? C.blue : C.yellow} sm />
+
+            {(documents as any[]).length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '80px 20px', fontFamily: "'JetBrains Mono',monospace" }}>
+                <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: `${C.blue}10`, border: `1px solid ${C.blue}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', margin: '0 auto 16px' }}>📄</div>
+                <div style={{ color: C.text, fontWeight: '600', marginBottom: '6px', fontSize: '14px' }}>No documents yet</div>
+                <div style={{ fontSize: '12px', color: 'var(--qa-text-faint)', maxWidth: '260px', margin: '0 auto 20px', lineHeight: 1.6 }}>Add Figma designs, FRD docs, or any reference links for this project.</div>
+                {canEdit && <button onClick={() => setAddDoc(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 20px', borderRadius: '8px', background: C.blue, color: '#fff', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: '700', fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.02em' }}>＋ Add Document</button>}
+              </div>
+            ) : (
+              ['figma','frd','additional'].map(cat => {
+                const catDocs = documents.filter((d: any) => d.doc_category === cat);
+                const catLabel: Record<string, string> = { figma: '🎨 Figma', frd: '📄 FRD', additional: '📁 Additional Documents' };
+                return (
+                  <div key={cat} style={{ marginBottom: '20px' }}>
+                    <div style={{ fontSize: '10px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: '8px' }}>{catLabel[cat]}</div>
+                    {catDocs.length === 0
+                      ? <div style={{ fontSize: '12px', color: 'var(--qa-text-faint)', fontFamily: "'JetBrains Mono',monospace", padding: '8px 0' }}>— Not added yet</div>
+                      : catDocs.map((d: any) => (
+                        <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'rgba(255,255,255,.02)', border: `1px solid ${C.border}`, borderRadius: '10px', marginBottom: '6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span style={{ fontSize: '16px' }}>{d.type === 'link' ? '🔗' : '📑'}</span>
+                            <span style={{ fontSize: '13px', color: C.text }}>{d.label}</span>
+                            <Chip text={d.type} color={d.type === 'link' ? C.blue : C.yellow} sm />
+                          </div>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            {d.url && <Btn sm v="ghost" onClick={() => window.open(d.url, '_blank')}>Open</Btn>}
+                            {canDelete && <Btn sm v="danger" onClick={() => setConfirmDelete({ type: 'doc', id: d.id, label: d.label })}>Delete</Btn>}
+                          </div>
                         </div>
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          <Btn sm v="ghost">Open</Btn>
-                          {canDelete && <Btn sm v="danger" onClick={() => setConfirmDelete({ type: 'doc', id: d.id, label: d.label })}>Delete</Btn>}
-                        </div>
-                      </div>
-                    ))
-                  }
+                      ))
+                    }
+                  </div>
+                );
+              })
+            )}
+
+            {addDoc && (
+              <Modal title="Add Document" onClose={() => { setAddDoc(false); setDocLabel(''); setDocUrl(''); }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
+                  <Sel label="Category" opts={['figma','frd','additional']} value={docCategory} onChange={setDocCategory} />
+                  <Sel label="Type" opts={['link','file']} value={docType} onChange={setDocType} />
+                  <div style={{ gridColumn: '1/-1' }}><Inp label="Label" ph="e.g. Mobile App Figma" value={docLabel} onChange={setDocLabel} req /></div>
+                  {docType === 'link' && <div style={{ gridColumn: '1/-1' }}><Inp label="URL" ph="https://…" value={docUrl} onChange={setDocUrl} req /></div>}
                 </div>
-              );
-            })}
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <Btn onClick={() => addDocMut.mutate({ project_id: project.id, type: docType, label: docLabel, url: docUrl || null, doc_category: docCategory })} disabled={addDocMut.isPending || !docLabel || (docType === 'link' && !docUrl)}>
+                    {addDocMut.isPending ? 'Adding…' : 'Add Document'}
+                  </Btn>
+                  <Btn v="ghost" onClick={() => { setAddDoc(false); setDocLabel(''); setDocUrl(''); }}>Cancel</Btn>
+                </div>
+              </Modal>
+            )}
           </div>
         )}
       </div>
