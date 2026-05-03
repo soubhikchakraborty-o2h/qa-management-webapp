@@ -41,9 +41,9 @@ const DICEBEAR_URL = (name: string) =>
   `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(name.toLowerCase().trim())}&backgroundColor=b6e3f4,c0aede,d1d4f9`;
 
 // ── Sidebar ───────────────────────────────────────────────────
-export function Sidebar({ page, setPage, user, insideProject, onBackToProjects, collapsed, onSignOut }: {
+export function Sidebar({ page, setPage, user, insideProject, onBackToProjects, onExitProject, onSwitchQA, collapsed, onSignOut }: {
   page: string; setPage: (p: string) => void; user: any;
-  insideProject: boolean; onBackToProjects: () => void; collapsed: boolean;
+  insideProject: boolean; onBackToProjects: () => void; onExitProject?: () => void; onSwitchQA?: () => void; collapsed: boolean;
   onSignOut: () => void;
 }) {
   const { isDark, toggleTheme } = useTheme();
@@ -233,30 +233,45 @@ export function Sidebar({ page, setPage, user, insideProject, onBackToProjects, 
             <div style={{ margin: '10px 2px', borderTop: '1px solid rgba(255,255,255,0.06)' }} />
           </>}
           {['admin', 'qa_lead'].includes(user.role) && (
-            <NavItem label="Settings" icon="⚙" active={page === 'settings'} onClick={() => { setPage('settings'); if (insideProject) onBackToProjects(); }} />
+            <NavItem label="Settings" icon="⚙" active={page === 'settings'} onClick={() => { setPage('settings'); if (insideProject) onExitProject?.(); }} />
+          )}
+          {user.role === 'developer' && onSwitchQA && (
+            <NavItem label="Switch QA" icon="⇄" active={false} onClick={onSwitchQA} />
           )}
         </nav>
 
         {/* Bottom section: theme + sign out + version */}
         <div style={{ padding: '10px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          {/* Theme Toggle */}
+          {/* Theme Toggle Switch */}
           <div
             onClick={toggleTheme}
             onMouseEnter={() => setHovTheme(true)}
             onMouseLeave={() => setHovTheme(false)}
             style={{
-              display: 'flex', alignItems: 'center', gap: '12px',
-              padding: '9px 10px',
+              display: 'flex', alignItems: 'center', gap: '10px',
+              padding: '8px 10px', marginBottom: '2px',
               borderRadius: '8px', cursor: 'pointer',
-              marginBottom: '2px',
               background: hovTheme ? 'rgba(124,106,247,0.06)' : 'transparent',
-              color: hovTheme ? 'var(--qa-text)' : 'var(--qa-text-mid)',
-              fontSize: '12px', fontWeight: 500, fontFamily: "'JetBrains Mono', monospace",
-              transition: 'background 0.15s, color 0.15s',
+              transition: 'background 0.15s',
             }}
           >
-            <span style={{ fontSize: '13px', flexShrink: 0, width: '18px', textAlign: 'center' }}>{isDark ? '☀' : '☾'}</span>
-            {isDark ? 'Light Mode' : 'Dark Mode'}
+            <span style={{ fontSize: '13px', flexShrink: 0, width: '18px', textAlign: 'center' }}>{isDark ? '🌙' : '☀️'}</span>
+            <div style={{
+              width: '36px', height: '20px', borderRadius: '10px', flexShrink: 0,
+              background: isDark ? 'var(--qa-accent)' : 'rgba(124,106,247,0.3)',
+              position: 'relative', transition: 'background 0.2s',
+            }}>
+              <div style={{
+                position: 'absolute', top: '2px',
+                left: isDark ? '18px' : '2px',
+                width: '16px', height: '16px', borderRadius: '50%',
+                background: '#fff', transition: 'left 0.2s',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+              }} />
+            </div>
+            <span style={{ fontSize: '12px', color: hovTheme ? 'var(--qa-text)' : 'var(--qa-text-mid)', fontFamily: "'JetBrains Mono', monospace", fontWeight: 500, transition: 'color 0.15s' }}>
+              {isDark ? 'Dark' : 'Light'}
+            </span>
           </div>
 
           {/* Sign Out */}

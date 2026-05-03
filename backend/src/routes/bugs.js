@@ -33,7 +33,7 @@ router.post('/', authenticate, async (req, res) => {
     if (!project_id || !module || !summary) return res.status(400).json({ error: 'project_id, module, summary required' });
     const { data: slNo } = await supabase.rpc('get_next_bug_sl_no', { p_project_id: project_id });
     const { data: bug, error } = await supabase.from('bugs')
-      .insert({ project_id, test_case_id, sl_no: slNo, module, summary, assignee: assignee || null, developed_by: developed_by || '', reported_by: req.user.id })
+      .insert({ project_id, test_case_id, sl_no: slNo, module, summary, assignee: assignee || null, developed_by: developed_by || '', reported_by: req.user.id, priority: req.body.priority || 'Medium' })
       .select().single();
     if (error) throw error;
     res.status(201).json(bug);
@@ -55,6 +55,7 @@ router.post('/bulk', authenticate, async (req, res) => {
       assignee: bug.assignee || null,
       developed_by: bug.developed_by || '',
       status: bug.status || 'Open',
+      priority: bug.priority || 'Medium',
       developer_comment: bug.developer_comment || '',
       qa_status: bug.qa_status || 'Open',
       qa_comment: bug.qa_comment || '',
@@ -118,8 +119,8 @@ router.patch('/:id', async (req, res) => {
 
     const isQA = ['admin', 'qa_lead', 'qa_engineer'].includes(userRole);
     const allowed = isQA
-      ? ['module', 'summary', 'assignee', 'developed_by', 'status', 'developer_comment', 'qa_status', 'qa_comment', 'ba_comment']
-      : ['assignee', 'developed_by', 'developer_comment', 'ba_comment', 'status'];
+      ? ['module', 'summary', 'assignee', 'developed_by', 'status', 'priority', 'developer_comment', 'qa_status', 'qa_comment', 'ba_comment']
+      : ['assignee', 'developed_by', 'developer_comment', 'ba_comment', 'status', 'priority'];
     const updates = Object.fromEntries(Object.entries(req.body).filter(([k]) => allowed.includes(k)));
     if (Object.keys(updates).length === 0) return res.status(400).json({ error: 'No valid fields to update' });
     const { data, error } = await supabase.from('bugs').update(updates).eq('id', req.params.id).select().single();
@@ -149,13 +150,8 @@ router.delete('/:id', authenticate, async (req, res) => {
   try {
     const { data: bug } = await supabase.from('bugs').select('project_id').eq('id', req.params.id).single();
     if (!bug) return res.status(404).json({ error: 'Bug not found' });
+    await supabase.from('bug_resources').delete().eq('bug_id', req.params.id);
     await supabase.from('bugs').delete().eq('id', req.params.id);
-    const { data: remaining } = await supabase.from('bugs').select('id').eq('project_id', bug.project_id).order('sl_no');
-    if (remaining) {
-      for (let i = 0; i < remaining.length; i++) {
-        await supabase.from('bugs').update({ sl_no: i + 1 }).eq('id', remaining[i].id);
-      }
-    }
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

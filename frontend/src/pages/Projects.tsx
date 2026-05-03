@@ -337,7 +337,7 @@ export function ProjectsPage({ user, onProjectClick, filterByQA, teamViewMember,
       {showTeam && (
         <Modal title="👥 QA Team — Click to view their projects" onClose={() => setShowTeam(false)}>
           {team.map((m: any) => (
-            <div key={m.id} onClick={() => { setShowTeam(false); onProjectClick({ _viewQA: { id: m.id, name: m.name } }); }}
+            <div key={m.id} onClick={() => { setShowTeam(false); if (m.id === user.id) { onClearTeamView?.(); } else { onProjectClick({ _viewQA: { id: m.id, name: m.name } }); } }}
               style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer', borderRadius: '8px', transition: 'background .15s' }}
               onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,.04)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
@@ -386,8 +386,8 @@ export function ProjectsPage({ user, onProjectClick, filterByQA, teamViewMember,
       {/* Add Project Modal */}
       {showAdd && (
         <Modal title="＋ New Project" onClose={() => setShowAdd(false)}>
-          <Inp label="Project Name" ph="e.g. Crypto AI Agent" value={pName} onChange={setPName} req />
-          <Inp label="Project Code (max 10 chars)" ph="e.g. CAA or CRYPTOAI" value={pCode} onChange={v => setPCode(v.toUpperCase().slice(0, 10))} req />
+          <Inp label="Project Name" ph="Name of your Project" value={pName} onChange={setPName} req />
+          <Inp label="Project Code (max 10 chars)" ph="Use the same code as used in JIRA" value={pCode} onChange={v => setPCode(v.toUpperCase().slice(0, 10))} req />
           <Sel label="Application Type" opts={[{ v: 'web', l: '🌐 Web / Web App' }, { v: 'mobile', l: '📱 Mobile App' }, { v: 'both', l: '⚡ Both' }]} value={pType} onChange={setPType} />
           <Inp label="Figma Link" ph="https://figma.com/…" value={pFigma} onChange={setPFigma} />
           <Inp label="FRD Link" ph="https://drive.google.com/…" value={pFrd} onChange={setPFrd} />

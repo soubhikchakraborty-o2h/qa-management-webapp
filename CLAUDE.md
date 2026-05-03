@@ -111,3 +111,25 @@ Bug PATCH has additional role-based field restrictions enforced in `bugs.js`.
 - **Frontend:** Vercel (`vercel.json` rewrites all paths to `index.html`)
 - **Backend:** Railway (`Procfile`: `web: node src/index.js`)
 - **Database:** Supabase (hosted Postgres)
+
+## Project Management
+
+### Bug Tracking
+All bugs and their status are tracked in `bugs.md` at the project root.
+- ALWAYS read `bugs.md` before starting any bug fix session
+- ALWAYS update the status of each bug in `bugs.md` after fixing it
+- Status values: 🔴 Open | 🟡 In Progress | 🟢 Fixed | ⚫ Won't Fix
+
+### Memory (Graphify)
+This project uses Graphify for memory management.
+- At the start of EVERY session, run `/graphify load` to restore context
+- At the end of EVERY session, run `/graphify save` to persist changes
+- Do NOT read all project files from scratch — use Graphify memory first
+- Only read actual files if Graphify memory is missing specific details
+
+### Database
+Supabase MCP is connected to this project.
+- Use Supabase MCP directly for ALL database changes
+- Never ask the user to manually run SQL in Supabase editor
+- Always verify schema changes using MCP after making them
+- Always check existing schema before adding columns (use IF NOT EXISTS)

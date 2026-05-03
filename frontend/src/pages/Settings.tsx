@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { C } from '../lib/constants';
-import { getSettings, addSetting, deleteSetting, getTeam, addQAUser, deleteQAUser, getHRUsers, addHRUser, deleteHRUser, updateMember } from '../lib/api';
+import { getSettings, addSetting, deleteSetting, getTeam, addQAUser, deleteQAUser, getHRUsers, addHRUser, deleteHRUser, updateMember, getGlobalMembers, addGlobalMember, deleteGlobalMember } from '../lib/api';
 import { GCard, Chip, Btn, Inp, Sel, Modal, ConfirmDeleteModal } from '../components/ui/index';
 import { useAuth } from '../context/AuthContext';
 
@@ -235,6 +235,105 @@ function TeamManagement({ isAdmin }: { isAdmin: boolean }) {
   );
 }
 
+// ── Members Management ────────────────────────────────────────
+const DEPARTMENTS = ['CTO', 'Frontend', 'Fullstack', 'Mobile', 'DevOps', 'BA'];
+
+function MembersManagement() {
+  const qc = useQueryClient();
+  const [showAdd, setShowAdd] = useState(false);
+  const [addType, setAddType] = useState<'developer' | 'ba'>('developer');
+  const [addName, setAddName] = useState('');
+  const [addDept, setAddDept] = useState('Fullstack');
+
+  const { data: members = [] } = useQuery({ queryKey: ['global_members'], queryFn: () => getGlobalMembers() });
+
+  const addMut = useMutation({
+    mutationFn: () => addGlobalMember({ name: addName.trim(), type: addType, department: addType === 'developer' ? addDept : 'BA' }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['global_members'] }); toast.success('Member added'); setShowAdd(false); setAddName(''); },
+    onError: (e: any) => toast.error(e.response?.data?.error || 'Failed'),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => deleteGlobalMember(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['global_members'] }); toast.success('Removed'); },
+  });
+
+  const developers = (members as any[]).filter((m: any) => m.type === 'developer');
+  const bas = (members as any[]).filter((m: any) => m.type === 'ba');
+
+  const byDept: Record<string, any[]> = {};
+  developers.forEach((d: any) => {
+    const dept = d.department || 'Other';
+    if (!byDept[dept]) byDept[dept] = [];
+    byDept[dept].push(d);
+  });
+
+  const chipStyle = (color: string): React.CSSProperties => ({
+    display: 'inline-flex', alignItems: 'center', gap: '5px',
+    padding: '3px 10px 3px 10px', borderRadius: '999px', fontSize: '11px',
+    fontFamily: "'JetBrains Mono',monospace", fontWeight: 600,
+    background: `${color}18`, color, border: `1px solid ${color}35`, margin: '3px',
+  });
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+        <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--qa-text)', fontFamily: "'JetBrains Mono',monospace" }}>
+          Global Members — {(members as any[]).length} total
+        </div>
+        <Btn sm icon="＋" onClick={() => setShowAdd(true)}>Add Member</Btn>
+      </div>
+
+      {/* Developers section */}
+      <GCard style={{ padding: '18px 20px', marginBottom: '14px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 700, color: C.accent, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: '12px' }}>Developers ({developers.length})</div>
+        {Object.entries(byDept).sort().map(([dept, devs]) => (
+          <div key={dept} style={{ marginBottom: '10px' }}>
+            <div style={{ fontSize: '10px', color: 'var(--qa-text-mid)', fontFamily: "'JetBrains Mono',monospace", fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '4px' }}>{dept}</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+              {devs.map((m: any) => (
+                <span key={m.id} style={chipStyle(C.accent)}>
+                  {m.name}
+                  <button onClick={() => deleteMut.mutate(m.id)} title="Remove" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: '0', fontSize: '11px', lineHeight: 1, opacity: 0.65 }}>×</button>
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </GCard>
+
+      {/* BAs section */}
+      <GCard style={{ padding: '18px 20px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 700, color: C.yellow, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: '12px' }}>Business Analysts ({bas.length})</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+          {bas.map((m: any) => (
+            <span key={m.id} style={chipStyle(C.yellow)}>
+              {m.name}
+              <button onClick={() => deleteMut.mutate(m.id)} title="Remove" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: '0', fontSize: '11px', lineHeight: 1, opacity: 0.65 }}>×</button>
+            </span>
+          ))}
+        </div>
+      </GCard>
+
+      {showAdd && (
+        <Modal title="Add Member" onClose={() => { setShowAdd(false); setAddName(''); }}>
+          <Sel label="Type" opts={['developer', 'ba']} value={addType} onChange={v => setAddType(v as any)} />
+          <Inp label="Name" ph="Full name" value={addName} onChange={setAddName} req />
+          {addType === 'developer' && (
+            <Sel label="Department" opts={DEPARTMENTS.filter(d => d !== 'BA')} value={addDept} onChange={setAddDept} />
+          )}
+          <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+            <Btn onClick={() => addName.trim() && addMut.mutate()} disabled={addMut.isPending || !addName.trim()}>
+              {addMut.isPending ? 'Adding…' : 'Add Member'}
+            </Btn>
+            <Btn v="ghost" onClick={() => { setShowAdd(false); setAddName(''); }}>Cancel</Btn>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
 // ── Settings Page ─────────────────────────────────────────────
 export function SettingsPage() {
   const { user } = useAuth();
@@ -244,7 +343,7 @@ export function SettingsPage() {
 
   const TABS = [
     ...SETTING_TABS,
-    ...(isAdminOrLead ? [{ id: 'team', l: 'Team' }] : []),
+    ...(isAdminOrLead ? [{ id: 'team', l: 'Team' }, { id: 'members', l: 'Members' }] : []),
   ];
 
   const [tab, setTab] = useState('bug_status');
@@ -311,6 +410,8 @@ export function SettingsPage() {
 
       {tab === 'team' ? (
         <TeamManagement isAdmin={isAdmin} />
+      ) : tab === 'members' ? (
+        <MembersManagement />
       ) : (
         <>
           <div style={{

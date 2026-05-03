@@ -100,6 +100,22 @@ function AppInner() {
 
   const clearTeamView = () => setTeamViewMember(null);
 
+  const exitProjectOnly = () => {
+    setProject(null);
+    if (window.history.state?.qaProject) {
+      skipPopRef.current = true;
+      window.history.back();
+    }
+  };
+
+  const handleSwitchQA = () => {
+    localStorage.removeItem('qa_selected_qa');
+    setSelectedQA('');
+    setFilterQA(null);
+    setProject(null);
+    setScreen('choose_qa');
+  };
+
   const handleReassignComplete = () => {
     setTeamViewMember(null);
     setProject(null);
@@ -179,7 +195,9 @@ function AppInner() {
       <div style={{ position: 'relative', zIndex: 1, display: 'flex', width: '100%', minHeight: '100vh' }}>
         <Sidebar
           page={sPage} setPage={setSPage} user={effectiveUser}
-          insideProject={inside} onBackToProjects={closeProject} collapsed={collapsed}
+          insideProject={inside} onBackToProjects={closeProject} onExitProject={exitProjectOnly}
+          onSwitchQA={handleSwitchQA}
+          collapsed={collapsed}
           onSignOut={handleSignOut}
         />
 
