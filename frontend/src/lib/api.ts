@@ -116,4 +116,12 @@ export const deleteSetting = (id: string) => api.delete(`/settings/${id}`).then(
 export const getHRReport = (from: string, to: string) =>
   api.get(`/reports/hr?from=${from}&to=${to}`).then(r => r.data);
 
+// ── Global Members ────────────────────────────────────────────
+export const getGlobalMembers = (type?: 'developer' | 'ba') =>
+  api.get(`/members${type ? `?type=${type}` : ''}`).then(r => r.data);
+export const addGlobalMember = (data: { name: string; type: string; department?: string }) =>
+  api.post('/members', data).then(r => r.data);
+export const deleteGlobalMember = (id: string) =>
+  api.delete(`/members/${id}`).then(r => r.data);
+
 export default api;

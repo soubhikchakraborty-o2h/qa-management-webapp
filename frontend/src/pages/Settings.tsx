@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { C } from '../lib/constants';
-import { getSettings, addSetting, deleteSetting, getTeam, addQAUser, deleteQAUser, getHRUsers, addHRUser, deleteHRUser, updateMember } from '../lib/api';
+import { getSettings, addSetting, deleteSetting, getTeam, addQAUser, deleteQAUser, getHRUsers, addHRUser, deleteHRUser, updateMember, getGlobalMembers, addGlobalMember, deleteGlobalMember } from '../lib/api';
 import { GCard, Chip, Btn, Inp, Sel, Modal, ConfirmDeleteModal } from '../components/ui/index';
 import { useAuth } from '../context/AuthContext';
 
@@ -235,6 +235,105 @@ function TeamManagement({ isAdmin }: { isAdmin: boolean }) {
   );
 }
 
+// ── Members Management ────────────────────────────────────────
+const DEPARTMENTS = ['CTO', 'Frontend', 'Fullstack', 'Mobile', 'DevOps', 'BA'];
+
+function MembersManagement() {
+  const qc = useQueryClient();
+  const [showAdd, setShowAdd] = useState(false);
+  const [addType, setAddType] = useState<'developer' | 'ba'>('developer');
+  const [addName, setAddName] = useState('');
+  const [addDept, setAddDept] = useState('Fullstack');
+
+  const { data: members = [] } = useQuery({ queryKey: ['global_members'], queryFn: () => getGlobalMembers() });
+
+  const addMut = useMutation({
+    mutationFn: () => addGlobalMember({ name: addName.trim(), type: addType, department: addType === 'developer' ? addDept : 'BA' }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['global_members'] }); toast.success('Member added'); setShowAdd(false); setAddName(''); },
+    onError: (e: any) => toast.error(e.response?.data?.error || 'Failed'),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => deleteGlobalMember(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['global_members'] }); toast.success('Removed'); },
+  });
+
+  const developers = (members as any[]).filter((m: any) => m.type === 'developer');
+  const bas = (members as any[]).filter((m: any) => m.type === 'ba');
+
+  const byDept: Record<string, any[]> = {};
+  developers.forEach((d: any) => {
+    const dept = d.department || 'Other';
+    if (!byDept[dept]) byDept[dept] = [];
+    byDept[dept].push(d);
+  });
+
+  const chipStyle = (color: string): React.CSSProperties => ({
+    display: 'inline-flex', alignItems: 'center', gap: '5px',
+    padding: '3px 10px 3px 10px', borderRadius: '999px', fontSize: '11px',
+    fontFamily: "'JetBrains Mono',monospace", fontWeight: 600,
+    background: `${color}18`, color, border: `1px solid ${color}35`, margin: '3px',
+  });
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+        <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--qa-text)', fontFamily: "'JetBrains Mono',monospace" }}>
+          Global Members — {(members as any[]).length} total
+        </div>
+        <Btn sm icon="＋" onClick={() => setShowAdd(true)}>Add Member</Btn>
+      </div>
+
+      {/* Developers section */}
+      <GCard style={{ padding: '18px 20px', marginBottom: '14px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 700, color: C.accent, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: '12px' }}>Developers ({developers.length})</div>
+        {Object.entries(byDept).sort().map(([dept, devs]) => (
+          <div key={dept} style={{ marginBottom: '10px' }}>
+            <div style={{ fontSize: '10px', color: 'var(--qa-text-mid)', fontFamily: "'JetBrains Mono',monospace", fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '4px' }}>{dept}</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+              {devs.map((m: any) => (
+                <span key={m.id} style={chipStyle(C.accent)}>
+                  {m.name}
+                  <button onClick={() => deleteMut.mutate(m.id)} title="Remove" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: '0', fontSize: '11px', lineHeight: 1, opacity: 0.65 }}>×</button>
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </GCard>
+
+      {/* BAs section */}
+      <GCard style={{ padding: '18px 20px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 700, color: C.yellow, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: '12px' }}>Business Analysts ({bas.length})</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+          {bas.map((m: any) => (
+            <span key={m.id} style={chipStyle(C.yellow)}>
+              {m.name}
+              <button onClick={() => deleteMut.mutate(m.id)} title="Remove" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: '0', fontSize: '11px', lineHeight: 1, opacity: 0.65 }}>×</button>
+            </span>
+          ))}
+        </div>
+      </GCard>
+
+      {showAdd && (
+        <Modal title="Add Member" onClose={() => { setShowAdd(false); setAddName(''); }}>
+          <Sel label="Type" opts={['developer', 'ba']} value={addType} onChange={v => setAddType(v as any)} />
+          <Inp label="Name" ph="Full name" value={addName} onChange={setAddName} req />
+          {addType === 'developer' && (
+            <Sel label="Department" opts={DEPARTMENTS.filter(d => d !== 'BA')} value={addDept} onChange={setAddDept} />
+          )}
+          <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+            <Btn onClick={() => addName.trim() && addMut.mutate()} disabled={addMut.isPending || !addName.trim()}>
+              {addMut.isPending ? 'Adding…' : 'Add Member'}
+            </Btn>
+            <Btn v="ghost" onClick={() => { setShowAdd(false); setAddName(''); }}>Cancel</Btn>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
 // ── Settings Page ─────────────────────────────────────────────
 export function SettingsPage() {
   const { user } = useAuth();
@@ -244,7 +343,7 @@ export function SettingsPage() {
 
   const TABS = [
     ...SETTING_TABS,
-    ...(isAdminOrLead ? [{ id: 'team', l: 'Team' }] : []),
+    ...(isAdminOrLead ? [{ id: 'team', l: 'Team' }, { id: 'members', l: 'Members' }] : []),
   ];
 
   const [tab, setTab] = useState('bug_status');
@@ -268,44 +367,94 @@ export function SettingsPage() {
   const currentValues: any[] = (settings as any)[tab] || [];
 
   return (
-    <div style={{ padding: '28px 32px', width: '100%' }} className="fu">
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ margin: '0 0 6px', fontSize: '24px', fontWeight: '800', color: C.text, fontFamily: "'JetBrains Mono',monospace" }}>Settings</h1>
-        <div style={{ fontSize: '11px', color: C.textDim, fontFamily: "'JetBrains Mono',monospace" }}>Manage dropdown chips and status values · Admin & QA Lead only</div>
+    <div style={{ padding: '28px 36px 48px', width: '100%' }} className="fu">
+      <div style={{ marginBottom: '22px' }}>
+        <h1 style={{ margin: '0 0 6px', fontSize: '24px', fontWeight: 600, color: 'var(--qa-text)', fontFamily: "'JetBrains Mono',monospace", letterSpacing: '-0.02em' }}>Settings</h1>
+        <div style={{ fontSize: '12px', color: 'var(--qa-text-mid)', fontFamily: "'JetBrains Mono',monospace" }}>Manage dropdown chips and status values · Admin & QA Lead only</div>
       </div>
 
-      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '22px' }}>
-        {TABS.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} style={{ padding: '6px 13px', borderRadius: '8px', fontSize: '11px', fontWeight: '700', fontFamily: "'JetBrains Mono',monospace", cursor: 'pointer', background: tab === t.id ? `${C.accent}12` : 'var(--qa-input)', border: `1px solid ${tab === t.id ? C.accent + '50' : C.border}`, color: tab === t.id ? C.accent : C.textDim, transition: 'all .15s' }}>{t.l}</button>
-        ))}
+      {/* Pill-style tab switcher */}
+      <div style={{
+        display: 'inline-flex',
+        gap: '2px',
+        background: 'var(--qa-surface)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        borderRadius: '10px',
+        padding: '3px',
+        marginBottom: '22px',
+        flexWrap: 'wrap',
+      }}>
+        {TABS.map(t => {
+          const active = tab === t.id;
+          return (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'var(--qa-text)'; }}
+              onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'var(--qa-text-mid)'; }}
+              style={{
+                padding: '7px 16px',
+                borderRadius: '7px',
+                fontSize: '12px',
+                fontWeight: active ? 600 : 500,
+                fontFamily: "'JetBrains Mono',monospace",
+                cursor: 'pointer',
+                background: active ? 'var(--qa-card)' : 'transparent',
+                border: 'none',
+                color: active ? 'var(--qa-text)' : 'var(--qa-text-mid)',
+                boxShadow: active ? '0 1px 3px rgba(0,0,0,0.15)' : 'none',
+                transition: 'color 0.15s, background 0.15s',
+                letterSpacing: '.01em',
+              }}>{t.l}</button>
+          );
+        })}
       </div>
 
       {tab === 'team' ? (
         <TeamManagement isAdmin={isAdmin} />
+      ) : tab === 'members' ? (
+        <MembersManagement />
       ) : (
         <>
-          <GCard style={{ padding: '20px' }} glow={C.accent}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <span style={{ fontSize: '13px', fontWeight: '700', color: C.text, fontFamily: "'JetBrains Mono',monospace" }}>
+          <div style={{
+            background: 'var(--qa-card)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: '12px',
+            padding: '18px 20px',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--qa-text)', fontFamily: "'JetBrains Mono',monospace" }}>
                 {SETTING_TABS.find(t => t.id === tab)?.l} Values
               </span>
               <Btn sm icon="＋" onClick={() => setShowAdd(true)}>Add Value</Btn>
             </div>
 
             {isLoading
-              ? <div style={{ color: C.textDim, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace" }}>Loading…</div>
-              : <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              ? <div style={{ color: 'var(--qa-text-mid)', fontSize: '12px', fontFamily: "'JetBrains Mono',monospace" }}>Loading…</div>
+              : <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   {currentValues.map((item: any) => (
-                    <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: `${item.color}12`, border: `1px solid ${item.color}35`, borderRadius: '8px', padding: '8px 12px' }}>
-                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: item.color }} />
-                      <span style={{ fontSize: '12px', color: C.text, fontFamily: "'JetBrains Mono',monospace" }}>{item.value}</span>
-                      <button onClick={() => deleteMut.mutate(item.id)} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', fontSize: '12px', padding: '0 0 0 2px', lineHeight: 1 }}>✕</button>
+                    <div key={item.id} style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '8px',
+                      background: `${item.color}1f`,
+                      border: `1px solid ${item.color}38`,
+                      borderRadius: '999px',
+                      padding: '4px 6px 4px 10px',
+                    }}>
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: item.color, display: 'inline-block' }} />
+                      <span style={{ fontSize: '11.5px', color: item.color, fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>{item.value}</span>
+                      <button onClick={() => deleteMut.mutate(item.id)}
+                        onMouseEnter={e => { e.currentTarget.style.opacity = '1'; }}
+                        onMouseLeave={e => { e.currentTarget.style.opacity = '0.6'; }}
+                        style={{
+                          background: 'none', border: 'none', color: 'inherit',
+                          cursor: 'pointer', fontSize: '12px',
+                          padding: '0 4px', lineHeight: 1, opacity: 0.6,
+                          transition: 'opacity .15s',
+                        }}>×</button>
                     </div>
                   ))}
-                  {currentValues.length === 0 && <div style={{ color: C.textMid, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace" }}>No values yet. Add one.</div>}
+                  {currentValues.length === 0 && <div style={{ color: 'var(--qa-text-mid)', fontSize: '12px', fontFamily: "'JetBrains Mono',monospace" }}>No values yet. Add one.</div>}
                 </div>
             }
-          </GCard>
+          </div>
 
           {showAdd && (
             <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }} onClick={e => e.target === e.currentTarget && setShowAdd(false)}>

@@ -94,7 +94,7 @@ router.patch('/:id', authenticate, async (req, res) => {
   try {
     const { data: tc } = await supabase.from('test_cases').select('project_id').eq('id', req.params.id).single();
     if (!await canEdit(tc.project_id, req.user)) return res.status(403).json({ error: 'No edit access' });
-    const allowed = ['module', 'summary', 'preconditions', 'steps', 'expected_result', 'priority', 'labels', 'platform', 'execution_status', 'test_result'];
+    const allowed = ['module', 'summary', 'preconditions', 'steps', 'expected_result', 'actual_result', 'priority', 'labels', 'platform', 'execution_status', 'test_result'];
     const updates = Object.fromEntries(Object.entries(req.body).filter(([k]) => allowed.includes(k)));
     const { data, error } = await supabase.from('test_cases').update(updates).eq('id', req.params.id).select().single();
     if (error) throw error;
@@ -108,14 +108,6 @@ router.delete('/:id', authenticate, async (req, res) => {
     if (!tc) return res.status(404).json({ error: 'Test case not found' });
     if (!await canEdit(tc.project_id, req.user)) return res.status(403).json({ error: 'No edit access' });
     await supabase.from('test_cases').delete().eq('id', req.params.id);
-    const { data: proj } = await supabase.from('projects').select('project_code').eq('id', tc.project_id).single();
-    const { data: remaining } = await supabase.from('test_cases').select('id').eq('project_id', tc.project_id).order('created_at');
-    if (proj && remaining) {
-      for (let i = 0; i < remaining.length; i++) {
-        const newId = `${proj.project_code}${String(i + 1).padStart(3, '0')}`;
-        await supabase.from('test_cases').update({ test_case_id: newId }).eq('id', remaining[i].id);
-      }
-    }
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

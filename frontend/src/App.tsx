@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { C } from './lib/constants';
 import { Sidebar } from './components/layout/index';
@@ -48,6 +48,28 @@ function AppInner() {
   }, [user]);
 
   const inside = !!project;
+  const skipPopRef = useRef(false);
+
+  // Push a history entry when a project is opened so browser back works
+  useEffect(() => {
+    if (project) {
+      window.history.pushState({ qaProject: true }, '');
+    }
+  }, [project?.id]);
+
+  // Handle browser back button — close project instead of exiting the app
+  useEffect(() => {
+    const onPop = () => {
+      if (skipPopRef.current) { skipPopRef.current = false; return; }
+      if (project) {
+        setProject(null);
+        setSPage('projects');
+        if (!user) setFilterQA(localStorage.getItem('qa_selected_qa') || null);
+      }
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [project, user]);
 
   const openProject = (p: any) => {
     if (p._viewQA) {
@@ -68,12 +90,31 @@ function AppInner() {
   const closeProject = () => {
     setProject(null);
     setSPage('projects');
-    // Restore QA filter for developer mode
     if (!user) setFilterQA(localStorage.getItem('qa_selected_qa') || null);
-    // teamViewMember preserved — user returns to the team view list they came from
+    // Pop the history entry we pushed when opening so browser history stays clean
+    if (window.history.state?.qaProject) {
+      skipPopRef.current = true;
+      window.history.back();
+    }
   };
 
   const clearTeamView = () => setTeamViewMember(null);
+
+  const exitProjectOnly = () => {
+    setProject(null);
+    if (window.history.state?.qaProject) {
+      skipPopRef.current = true;
+      window.history.back();
+    }
+  };
+
+  const handleSwitchQA = () => {
+    localStorage.removeItem('qa_selected_qa');
+    setSelectedQA('');
+    setFilterQA(null);
+    setProject(null);
+    setScreen('choose_qa');
+  };
 
   const handleReassignComplete = () => {
     setTeamViewMember(null);
@@ -154,7 +195,9 @@ function AppInner() {
       <div style={{ position: 'relative', zIndex: 1, display: 'flex', width: '100%', minHeight: '100vh' }}>
         <Sidebar
           page={sPage} setPage={setSPage} user={effectiveUser}
-          insideProject={inside} onBackToProjects={closeProject} collapsed={collapsed}
+          insideProject={inside} onBackToProjects={closeProject} onExitProject={exitProjectOnly}
+          onSwitchQA={handleSwitchQA}
+          collapsed={collapsed}
           onSignOut={handleSignOut}
         />
 

@@ -8,6 +8,21 @@ const BASE_SELECT = `*, project_assignments(user_id, users(id,name,username,role
 const STATUS_ORDER = { active: 0, in_review: 1, on_hold: 2, completed: 3 };
 const sortByStatus = arr => [...arr].sort((a, b) => (STATUS_ORDER[a.status] ?? 9) - (STATUS_ORDER[b.status] ?? 9));
 
+const withCounts = async (projects) => {
+  if (!projects || !projects.length) return projects;
+  const ids = projects.map(p => p.id);
+  const [{ data: tcs }, { data: bugsData }, { data: passTcs }] = await Promise.all([
+    supabase.from('test_cases').select('project_id').in('project_id', ids),
+    supabase.from('bugs').select('project_id').in('project_id', ids),
+    supabase.from('test_cases').select('project_id').eq('test_result', 'Pass').in('project_id', ids),
+  ]);
+  const tcMap = {}, bugMap = {}, passMap = {};
+  (tcs || []).forEach(r => { tcMap[r.project_id] = (tcMap[r.project_id] || 0) + 1; });
+  (bugsData || []).forEach(r => { bugMap[r.project_id] = (bugMap[r.project_id] || 0) + 1; });
+  (passTcs || []).forEach(r => { passMap[r.project_id] = (passMap[r.project_id] || 0) + 1; });
+  return projects.map(p => ({ ...p, test_case_count: tcMap[p.id] || 0, bug_count: bugMap[p.id] || 0, pass_count: passMap[p.id] || 0 }));
+};
+
 // GET projects — own projects by default; ?teamView=true&owner=<userId> for team view
 router.get('/', authenticate, async (req, res) => {
   try {
@@ -27,7 +42,7 @@ router.get('/', authenticate, async (req, res) => {
 
     const { data, error } = await query.order('created_at', { ascending: false });
     if (error) throw error;
-    res.json({ projects: sortByStatus(data), readOnly });
+    res.json({ projects: sortByStatus(await withCounts(data)), readOnly });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -54,7 +69,7 @@ router.get('/dev-view', async (req, res) => {
 
     const { data, error } = await query.order('created_at', { ascending: false });
     if (error) throw error;
-    res.json(sortByStatus(data || []));
+    res.json(sortByStatus(await withCounts(data || [])));
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -216,12 +231,20 @@ router.delete('/:id', authenticate, async (req, res) => {
     if (req.user.role !== 'admin' && req.user.role !== 'qa_lead' && proj.created_by !== req.user.id) {
       return res.status(403).json({ error: 'Not authorized' });
     }
-    await supabase.from('test_cases').delete().eq('project_id', req.params.id);
+    // Fetch bug IDs to clean up bug_resources (FK: bug_resources.bug_id → bugs.id)
+    const { data: projectBugs } = await supabase.from('bugs').select('id').eq('project_id', req.params.id);
+    const bugIds = (projectBugs || []).map(b => b.id);
+    if (bugIds.length) await supabase.from('bug_resources').delete().in('bug_id', bugIds);
+    // Delete bugs before test_cases (bugs.test_case_id → test_cases.id FK)
     await supabase.from('bugs').delete().eq('project_id', req.params.id);
-    await supabase.from('automation_scripts').delete().eq('project_id', req.params.id);
-    await supabase.from('documents').delete().eq('project_id', req.params.id);
-    await supabase.from('project_developers').delete().eq('project_id', req.params.id);
-    await supabase.from('project_assignments').delete().eq('project_id', req.params.id);
+    // Delete remaining children in parallel
+    await Promise.all([
+      supabase.from('test_cases').delete().eq('project_id', req.params.id),
+      supabase.from('automation_scripts').delete().eq('project_id', req.params.id),
+      supabase.from('documents').delete().eq('project_id', req.params.id),
+      supabase.from('project_developers').delete().eq('project_id', req.params.id),
+      supabase.from('project_assignments').delete().eq('project_id', req.params.id),
+    ]);
     await supabase.from('projects').delete().eq('id', req.params.id);
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: err.message }); }

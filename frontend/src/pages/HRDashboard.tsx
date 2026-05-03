@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
@@ -122,19 +122,54 @@ function HRProjectsView({ onProjectClick }: { onProjectClick: (p: any) => void }
                   <div style={{ fontSize: '13px', fontWeight: '700', color: C.text, fontFamily: "'JetBrains Mono',monospace", marginBottom: '3px' }}>{p.name}</div>
                   <div style={{ fontSize: '10px', color: C.accent, fontFamily: "'JetBrains Mono',monospace" }}>{p.project_code}</div>
                 </div>
-                <Chip text={p.status?.replace('_', ' ') || 'active'} color={STATUS_COLOR[p.status] || C.textDim} sm />
+                <Chip text={(() => { const s = p.status || 'active'; return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase().replace('_', ' '); })()} color={STATUS_COLOR[p.status] || C.textDim} sm />
               </div>
               {p.description && (
                 <div style={{ fontSize: '11px', color: C.textMid, lineHeight: '1.6', marginBottom: '12px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{p.description}</div>
               )}
-              <div style={{ display: 'flex', gap: '12px', fontSize: '10px', color: C.textDim, fontFamily: "'JetBrains Mono',monospace" }}>
-                <span>Type: {p.type || '—'}</span>
-                {p.created_by_user && <span>QA: {p.created_by_user.name}</span>}
+              <div style={{ fontSize: '10px', color: C.textDim, fontFamily: "'JetBrains Mono',monospace", display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                <span>QA: {p.created_by_user?.name || 'Unassigned'}</span>
+                {p.developer_roster?.length > 0 && (
+                  <span>
+                    Devs: {p.developer_roster.slice(0, 3).join(', ')}{p.developer_roster.length > 3 ? ` +${p.developer_roster.length - 3} more` : ''}
+                  </span>
+                )}
               </div>
             </GCard>
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ── DateInput (DD/MM/YYYY display, click opens calendar) ──────
+function DateInput({ value, onChange, label }: { value: string; onChange: (v: string) => void; label: string }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const toDisplay = (iso: string) => {
+    if (!iso) return '';
+    const [y, m, d] = iso.split('-');
+    return `${d}/${m}/${y}`;
+  };
+  return (
+    <div>
+      <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: 'var(--qa-text-mid)', marginBottom: '6px', fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.07em' }}>{label}</label>
+      <div style={{ position: 'relative', cursor: 'pointer', display: 'inline-block' }}
+        onClick={() => { try { (inputRef.current as any)?.showPicker?.(); } catch {} inputRef.current?.focus(); }}>
+        <input ref={inputRef} type="date" value={value} onChange={e => onChange(e.target.value)}
+          style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', zIndex: 1 }} />
+        <div style={{
+          background: 'var(--qa-input)', border: `1px solid var(--qa-border)`,
+          borderRadius: '8px', padding: '8px 12px',
+          fontFamily: "'JetBrains Mono', monospace", fontSize: '12px',
+          color: value ? 'var(--qa-text)' : 'var(--qa-text-mid)',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          gap: '10px', minWidth: '140px', pointerEvents: 'none',
+        }}>
+          <span>{value ? toDisplay(value) : 'DD/MM/YYYY'}</span>
+          <span style={{ fontSize: '14px' }}>📅</span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -197,6 +232,83 @@ function HRReportsView() {
       XLSX.utils.book_append_sheet(wb, ws, 'Bugs');
       XLSX.writeFile(wb, `${fileName}.xlsx`);
     }
+  };
+
+  const exportXLSX = () => {
+    if (!reportData) return;
+    const wb = XLSX.utils.book_new();
+
+    // Sheet 1: Summary
+    const summaryRows: any[] = [
+      ['QA Performance Report', `Period: ${dateFrom} to ${dateTo}`],
+      [],
+      ['TOTALS'],
+      ['Total Bugs', reportData.totals.totalBugs],
+      ['Total Test Cases', reportData.totals.totalTestCases],
+      ['Total Projects', reportData.totals.totalProjects],
+      ['Active Projects', reportData.totals.activeProjects],
+      [],
+      ['QA PERFORMANCE'],
+      ['Name', 'Role', 'Bugs Logged', 'Test Cases Created'],
+      ...Object.entries(reportData.qaPerformance).map(([name, d]: any) => [name, d.role, d.bugsLogged, d.testCasesCreated]),
+      [],
+      ['BUGS BY STATUS'],
+      ['Status', 'Count'],
+      ...Object.entries(reportData.bugsByStatus).map(([s, count]) => [s, count]),
+      [],
+      ['BUGS BY PRIORITY'],
+      ['Priority', 'Count'],
+      ...Object.entries(reportData.bugsByPriority).map(([p, count]) => [p, count]),
+    ];
+    const ws1 = XLSX.utils.aoa_to_sheet(summaryRows);
+    ws1['!cols'] = [{ wch: 30 }, { wch: 20 }, { wch: 15 }, { wch: 20 }];
+    XLSX.utils.book_append_sheet(wb, ws1, 'Summary');
+
+    // Sheet 2: Project Breakdown
+    const projRows: any[] = [
+      ['Project', 'Code', 'Status', 'Total Bugs', 'Open', 'In Progress', 'Fixed (To Test)', 'Closed', "Won't Fix", 'Test Cases', 'Top Developers'],
+      ...Object.entries(reportData.projectBreakdown).map(([name, d]: any) => {
+        const bugs = d.bugs as any[];
+        const devCounts: Record<string, number> = {};
+        bugs.forEach((b: any) => { if (b.developed_by) devCounts[b.developed_by] = (devCounts[b.developed_by] || 0) + 1; });
+        const topDevs = Object.entries(devCounts).sort(([,a],[,b]) => b - a).slice(0, 3).map(([dev, c]) => `${dev}(${c})`).join(', ');
+        return [
+          name, d.project_code || '', d.status || '',
+          bugs.length,
+          bugs.filter((b:any) => b.status === 'Open').length,
+          bugs.filter((b:any) => b.status === 'In Progress').length,
+          bugs.filter((b:any) => b.status === 'Fixed (To Test)').length,
+          bugs.filter((b:any) => b.status === 'Closed').length,
+          bugs.filter((b:any) => b.status === "Won't Fix (Invalid)").length,
+          d.testCases.length,
+          topDevs || '—',
+        ];
+      }),
+    ];
+    const ws2 = XLSX.utils.aoa_to_sheet(projRows);
+    ws2['!cols'] = [{ wch: 28 }, { wch: 10 }, { wch: 14 }, { wch: 12 }, { wch: 8 }, { wch: 14 }, { wch: 18 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 40 }];
+    XLSX.utils.book_append_sheet(wb, ws2, 'Project Breakdown');
+
+    // Sheet 3: All Bugs
+    const bugRows: any[] = [
+      ['Project', 'Sl No', 'Module', 'Summary', 'Developed By', 'Assignee', 'Priority', 'Status', 'QA Status', 'Dev Comment', 'QA Comment', 'BA Comment', 'Created At'],
+    ];
+    Object.entries(reportData.projectBreakdown).forEach(([projName, d]: any) => {
+      (d.bugs as any[]).forEach((bug: any) => {
+        bugRows.push([
+          projName, bug.sl_no, bug.module, bug.summary,
+          bug.developed_by || '', bug.assignee || '', bug.priority || 'Medium',
+          bug.status, bug.qa_status || '',
+          bug.developer_comment || '', bug.qa_comment || '', bug.ba_comment || '',
+          new Date(bug.created_at).toLocaleDateString('en-GB'),
+        ]);
+      });
+    });
+    const ws3 = XLSX.utils.aoa_to_sheet(bugRows);
+    ws3['!cols'] = [{ wch: 22 }, { wch: 8 }, { wch: 20 }, { wch: 40 }, { wch: 20 }, { wch: 20 }, { wch: 12 }, { wch: 18 }, { wch: 15 }, { wch: 40 }, { wch: 40 }, { wch: 40 }, { wch: 14 }];
+    XLSX.utils.book_append_sheet(wb, ws3, 'All Bugs');
+
+    XLSX.writeFile(wb, `HR_Report_${dateFrom}_${dateTo}.xlsx`);
   };
 
   const exportCSV = () => {
@@ -361,14 +473,8 @@ function HRReportsView() {
       {/* Date picker */}
       <GCard style={{ padding: '20px', marginBottom: '24px' }}>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: C.textMid, marginBottom: '6px', fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.07em' }}>From</label>
-            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={inputStyle} />
-          </div>
-          <div>
-            <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: C.textMid, marginBottom: '6px', fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.07em' }}>To</label>
-            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={inputStyle} />
-          </div>
+          <DateInput value={dateFrom} onChange={setDateFrom} label="From" />
+          <DateInput value={dateTo} onChange={setDateTo} label="To" />
           <Btn onClick={generateReport} disabled={loading || !dateFrom || !dateTo} style={{ alignSelf: 'flex-end' }}>
             {loading ? 'Generating…' : 'Generate Report'}
           </Btn>
@@ -380,6 +486,7 @@ function HRReportsView() {
         <>
           {/* Export buttons */}
           <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+            <Btn sm onClick={exportXLSX}>📊 Full Report XLSX</Btn>
             <Btn v="ghost" sm onClick={exportCSV}>Report CSV</Btn>
             <Btn v="ghost" sm onClick={exportPDF}>Report PDF</Btn>
             <Btn v="ghost" sm onClick={() => exportBugReport('csv')}>Bugs CSV</Btn>
@@ -429,29 +536,61 @@ function HRReportsView() {
 
           {/* Project Breakdown */}
           <GCard style={{ padding: '20px', marginBottom: '20px' }}>
-            <div style={{ fontSize: '13px', fontWeight: '700', color: C.text, fontFamily: "'JetBrains Mono',monospace", marginBottom: '16px' }}>Project Breakdown</div>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', fontFamily: "'JetBrains Mono',monospace" }}>
-                <thead>
-                  <tr>
-                    {['Project', 'Code', 'Status', 'Bugs', 'Test Cases'].map(h => (
-                      <th key={h} style={{ textAlign: 'left', padding: '8px 12px', fontSize: '10px', color: C.textDim, fontWeight: '600', borderBottom: `1px solid ${C.border}`, textTransform: 'uppercase', letterSpacing: '.07em' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(reportData.projectBreakdown).map(([name, d]: any) => (
-                    <tr key={name} style={{ borderBottom: `1px solid ${C.border}20` }}>
-                      <td style={{ padding: '10px 12px', color: C.text, fontWeight: '600' }}>{name}</td>
-                      <td style={{ padding: '10px 12px', color: C.accent }}>{d.project_code || '—'}</td>
-                      <td style={{ padding: '10px 12px' }}><Chip text={d.status || 'unknown'} color='#a78bfa' sm /></td>
-                      <td style={{ padding: '10px 12px', color: '#f87171' }}>{d.bugs.length}</td>
-                      <td style={{ padding: '10px 12px', color: '#60a5fa' }}>{d.testCases.length}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <div style={{ fontSize: '13px', fontWeight: '700', color: C.text, fontFamily: "'JetBrains Mono',monospace", marginBottom: '16px' }}>Project-wise Bug Breakdown</div>
+            {Object.entries(reportData.projectBreakdown).map(([name, d]: any) => {
+              const bugs = d.bugs as any[];
+              const devCounts: Record<string, { total: number; open: number; fixed: number }> = {};
+              bugs.forEach((b: any) => {
+                if (b.developed_by) {
+                  if (!devCounts[b.developed_by]) devCounts[b.developed_by] = { total: 0, open: 0, fixed: 0 };
+                  devCounts[b.developed_by].total++;
+                  if (b.status === 'Open' || b.status === 'In Progress') devCounts[b.developed_by].open++;
+                  if (b.status === 'Fixed (To Test)' || b.status === 'Closed') devCounts[b.developed_by].fixed++;
+                }
+              });
+              const qaStatusCounts: Record<string, number> = {};
+              bugs.forEach((b: any) => { const s = b.qa_status || 'Open'; qaStatusCounts[s] = (qaStatusCounts[s] || 0) + 1; });
+              return (
+                <div key={name} style={{ marginBottom: '14px', padding: '14px 16px', background: 'var(--qa-input)', borderRadius: '10px', border: `1px solid ${C.border}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <div>
+                      <span style={{ fontSize: '12px', fontWeight: '700', color: C.text, fontFamily: "'JetBrains Mono',monospace" }}>{name}</span>
+                      <span style={{ fontSize: '10px', color: C.accent, fontFamily: "'JetBrains Mono',monospace", marginLeft: '8px' }}>{d.project_code}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <Chip text={d.status || 'unknown'} color='#a78bfa' sm />
+                      <span style={{ fontSize: '10px', color: '#f87171', fontFamily: "'JetBrains Mono',monospace" }}>{bugs.length} bugs</span>
+                      <span style={{ fontSize: '10px', color: '#60a5fa', fontFamily: "'JetBrains Mono',monospace" }}>{d.testCases.length} TCs</span>
+                    </div>
+                  </div>
+                  {Object.keys(devCounts).length > 0 && (
+                    <div style={{ marginBottom: '8px' }}>
+                      <div style={{ fontSize: '9px', fontWeight: '700', color: C.textDim, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: '6px' }}>Dev Bugs</div>
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        {Object.entries(devCounts).sort(([,a],[,b]) => b.total - a.total).map(([dev, s]) => (
+                          <div key={dev} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 8px', background: `${C.accent}10`, border: `1px solid ${C.accent}25`, borderRadius: '6px', fontSize: '10px', fontFamily: "'JetBrains Mono',monospace" }}>
+                            <span style={{ color: C.text, fontWeight: 600 }}>{dev}</span>
+                            <span style={{ color: '#f87171' }}>{s.total}</span>
+                            {s.open > 0 && <span style={{ color: '#fbbf24', fontSize: '9px' }}>({s.open} open)</span>}
+                            {s.fixed > 0 && <span style={{ color: '#4ade80', fontSize: '9px' }}>({s.fixed} fixed)</span>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {Object.keys(qaStatusCounts).length > 0 && (
+                    <div>
+                      <div style={{ fontSize: '9px', fontWeight: '700', color: C.textDim, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: '6px' }}>QA Status</div>
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        {Object.entries(qaStatusCounts).map(([status, count]) => (
+                          <span key={status} style={{ fontSize: '10px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", padding: '2px 6px', background: 'var(--qa-surface)', borderRadius: '4px', border: `1px solid ${C.border}` }}>{status}: {count}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </GCard>
 
           {/* Bug breakdown */}
