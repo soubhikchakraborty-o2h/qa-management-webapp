@@ -172,7 +172,7 @@ export function DevEntry({ onContinue, onBack }: { onContinue: (name: string) =>
   const [allMembers, setAllMembers] = useState<string[]>([]);
 
   useEffect(() => {
-    fetch('/api/members')
+    fetch(`${import.meta.env.VITE_API_URL}/members`)
       .then(r => r.json())
       .then(data => setAllMembers(data.map((m: any) => m.name)))
       .catch(() => {});

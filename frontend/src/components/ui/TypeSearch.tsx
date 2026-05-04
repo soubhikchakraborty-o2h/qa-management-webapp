@@ -23,7 +23,8 @@ export const TypeSearch = ({
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const url = (!type || type === 'all') ? '/api/members' : `/api/members?type=${type}`;
+    const base = import.meta.env.VITE_API_URL;
+    const url = (!type || type === 'all') ? `${base}/members` : `${base}/members?type=${type}`;
     fetch(url)
       .then(r => r.json())
       .then((data: Member[]) => setMembers(data.map(m => m.name)))
