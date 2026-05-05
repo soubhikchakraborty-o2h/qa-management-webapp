@@ -8,9 +8,9 @@ import autoTable from 'jspdf-autotable';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { C, STATUS_COLORS, QA_STATUS_COLORS, STATUS_LABELS, APP_TYPE_ICON, PRIORITY_COLORS, LABEL_COLORS, PLATFORM_COLORS } from '../lib/constants';
-import { getTestCases, createTestCase, updateTestCase, deleteTestCase, getBugs, createBug, updateBug, deleteBug, addComment, getComments, getAutomation, updateScript, deleteAutomationScript, uploadScript, getDocuments, addDocument, deleteDocument, updateProject, getSettings, getTeam, reassignProject, addAdditionalQA, getRoster, updateRoster, addBugResource, deleteBugResource, bulkImportTestCases, bulkImportBugs } from '../lib/api';
+import { getTestCases, createTestCase, updateTestCase, deleteTestCase, getBugs, createBug, updateBug, deleteBug, addComment, getComments, getAutomation, updateScript, deleteAutomationScript, uploadScript, uploadZip, getDocuments, addDocument, deleteDocument, updateProject, getSettings, getTeam, reassignProject, addAdditionalQA, getRoster, updateRoster, addBugResource, deleteBugResource, bulkImportTestCases, bulkImportBugs, getGlobalMembers, getCredentials, addCredential, deleteCredential } from '../lib/api';
 import { GCard, Chip, Btn, Modal, Inp, Sel, ConfirmDeleteModal } from '../components/ui/index';
-import { Link, FileText, User, Calendar, ExternalLink, Trash2, ChevronLeft } from 'lucide-react';
+import { Link, FileText, User, Calendar, ExternalLink, Trash2, ChevronLeft, ChevronDown, Upload, Download, KeyRound, Copy, Check, Plus, Eye, EyeOff } from 'lucide-react';
 import { OverheadTabs } from '../components/layout/index';
 
 // ── DeveloperComboInput ───────────────────────────────────────
@@ -864,6 +864,27 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
   const [figmaInputVal, setFigmaInputVal] = useState('');
   const [frdInputVal, setFrdInputVal] = useState('');
 
+  // Automation ZIP
+  const [zipDragOver, setZipDragOver] = useState(false);
+  const [uploadingZip, setUploadingZip] = useState(false);
+
+  // Credentials
+  const [creds, setCreds] = useState<any[]>([]);
+  const [credsLoaded, setCredsLoaded] = useState(false);
+  const [showCredForm, setShowCredForm] = useState(false);
+  const [credForm, setCredForm] = useState({ user_role: '', username: '', password: '', url: '', notes: '' });
+  const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [credPending, setCredPending] = useState(false);
+
+  // Project details editing
+  const [editingDetails, setEditingDetails] = useState(false);
+  const [detailStartDate, setDetailStartDate] = useState(project.start_date || '');
+  const [detailEndDate, setDetailEndDate] = useState(project.end_date || '');
+  const [detailBAName, setDetailBAName] = useState(project.ba_name || '');
+  const [detailDesignerName, setDetailDesignerName] = useState(project.designer_name || '');
+  const [detailProjectType, setDetailProjectType] = useState(project.project_type || '');
+
   // Bug form
   const [bModule, setBModule] = useState(''); const [bSummary, setBSummary] = useState('');
   const [bAssignee, setBAssignee] = useState(''); const [bDevelopedBy, setBDevelopedBy] = useState('');
@@ -896,6 +917,56 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
     queryFn: getTeam,
     enabled: canReassign && !!localStorage.getItem('qa_token'),
   });
+
+  const { data: globalMembers = [] } = useQuery({ queryKey: ['global_members'], queryFn: () => getGlobalMembers(), enabled: page === 'overview' });
+  const baNames: string[] = (globalMembers as any[]).filter((m: any) => m.type === 'ba').map((m: any) => m.name);
+  const designerNames: string[] = (globalMembers as any[]).filter((m: any) => m.type === 'designer').map((m: any) => m.name);
+
+  // Fetch credentials when tab opens
+  useEffect(() => {
+    if (page === 'credentials' && !credsLoaded) {
+      getCredentials(project.id).then(data => { setCreds(data || []); setCredsLoaded(true); }).catch(() => {});
+    }
+  }, [page, project.id, credsLoaded]);
+
+  const togglePassword = (id: string) => {
+    setVisiblePasswords(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  };
+
+  const copyToClipboard = async (text: string, id: string) => {
+    await navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleZipFile = async (file: File) => {
+    if (!file.name.endsWith('.zip')) { toast.error('Only .zip files supported'); return; }
+    setUploadingZip(true);
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = ev => {
+          const result = ev.target?.result as string;
+          resolve(result.split(',')[1]);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      await uploadZip({ project_id: project.id, zip_name: file.name, zip_size: file.size, content: base64 });
+      qc.invalidateQueries({ queryKey: ['automation', project.id] });
+      toast.success('ZIP uploaded');
+    } catch { toast.error('Upload failed'); }
+    finally { setUploadingZip(false); }
+  };
+
+  const downloadZipScript = (s: any) => {
+    try {
+      const binary = atob(s.script_content || '');
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      saveAs(new Blob([bytes], { type: 'application/zip' }), s.zip_name || s.script_name || 'automation.zip');
+    } catch { toast.error('Download failed'); }
+  };
 
   const labelOptions: string[] = (settings?.label || []).map((s: any) => s.value);
   const platformOptions: string[] = (settings?.platform || []).map((s: any) => s.value).filter(Boolean);
@@ -1386,6 +1457,7 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                   }}>
                     <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: STATUS_COLORS[localStatus] }} />
                     {STATUS_LABELS[localStatus] || localStatus}
+                    {canEdit && <ChevronDown size={11} style={{ opacity: 0.7 }} />}
                   </span>
                 </div>
                 {canEdit && showStatusDropdown && (
@@ -1532,6 +1604,83 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                     style={{ flex: 1, maxWidth: '260px', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '8px 12px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }}
                   />
                   <Btn sm v="primary" onClick={() => { if (newDevName.trim()) rosterMut.mutate({ name: newDevName.trim(), action: 'add' }); }} disabled={rosterMut.isPending || !newDevName.trim()}>＋ Add</Btn>
+                </div>
+              )}
+            </GCard>
+
+            {/* Project Details */}
+            <GCard style={{ padding: '20px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <div style={{ fontSize: '10px', fontWeight: '700', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.08em', textTransform: 'uppercase' }}>📋 Project Details</div>
+                {canEdit && !editingDetails && (
+                  <button onClick={() => setEditingDetails(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.accent, fontSize: '11px', fontFamily: "'JetBrains Mono',monospace", padding: 0 }}>Edit</button>
+                )}
+              </div>
+              {editingDetails ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: '140px' }}>
+                      <div style={{ fontSize: '9.5px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>Start Date</div>
+                      <input type="date" value={detailStartDate} onChange={e => setDetailStartDate(e.target.value)}
+                        style={{ width: '100%', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '7px 10px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: '140px' }}>
+                      <div style={{ fontSize: '9.5px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>End Date</div>
+                      <input type="date" value={detailEndDate} onChange={e => setDetailEndDate(e.target.value)}
+                        style={{ width: '100%', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '7px 10px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }} />
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '9.5px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>Business Analyst</div>
+                    <select value={detailBAName} onChange={e => setDetailBAName(e.target.value)}
+                      style={{ width: '100%', background: 'var(--qa-select-bg)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '8px 10px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }}>
+                      <option value="">— None —</option>
+                      {baNames.map(n => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '9.5px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>Designer</div>
+                    <select value={detailDesignerName} onChange={e => setDetailDesignerName(e.target.value)}
+                      style={{ width: '100%', background: 'var(--qa-select-bg)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '8px 10px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }}>
+                      <option value="">— None —</option>
+                      {designerNames.map(n => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '9.5px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>Project Type</div>
+                    <select value={detailProjectType} onChange={e => setDetailProjectType(e.target.value)}
+                      style={{ width: '100%', background: 'var(--qa-select-bg)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '8px 10px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }}>
+                      <option value="">— Not set —</option>
+                      <option value="internal">Internal</option>
+                      <option value="external">External</option>
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                    <Btn sm onClick={() => {
+                      updateProjectMut.mutate({ start_date: detailStartDate || null, end_date: detailEndDate || null, ba_name: detailBAName || null, designer_name: detailDesignerName || null, project_type: detailProjectType || null });
+                      setEditingDetails(false);
+                    }} disabled={updateProjectMut.isPending}>Save</Btn>
+                    <Btn sm v="ghost" onClick={() => {
+                      setDetailStartDate(project.start_date || ''); setDetailEndDate(project.end_date || '');
+                      setDetailBAName(project.ba_name || ''); setDetailDesignerName(project.designer_name || '');
+                      setDetailProjectType(project.project_type || ''); setEditingDetails(false);
+                    }}>Cancel</Btn>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 20px' }}>
+                  {[
+                    { l: 'Start Date', v: project.start_date ? new Date(project.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—' },
+                    { l: 'End Date', v: project.end_date ? new Date(project.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—' },
+                    { l: 'Business Analyst', v: project.ba_name || '—' },
+                    { l: 'Designer', v: project.designer_name || '—' },
+                    { l: 'Project Type', v: project.project_type ? project.project_type.charAt(0).toUpperCase() + project.project_type.slice(1) : '—' },
+                  ].map(({ l, v }) => (
+                    <div key={l}>
+                      <div style={{ fontSize: '9.5px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>{l}</div>
+                      <div style={{ fontSize: '12px', color: v === '—' ? C.textDim : C.text, fontFamily: "'JetBrains Mono',monospace", fontWeight: v === '—' ? 400 : 600 }}>{v}</div>
+                    </div>
+                  ))}
                 </div>
               )}
             </GCard>
@@ -2031,67 +2180,199 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
         {/* AUTOMATION */}
         {page === 'automation' && (
           <div className="fu">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: C.text, fontFamily: "var(--font-heading, 'Montserrat', sans-serif)", letterSpacing: '-0.3px' }}>Automation Scripts</h3>
-              {(scripts as any[]).length > 0 && (
-                <Btn sm v="ghost" onClick={downloadAllScripts}>⬇ Download All as ZIP</Btn>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+              <div>
+                <h3 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: '700', color: C.text, fontFamily: "var(--font-heading, 'Montserrat', sans-serif)", letterSpacing: '-0.3px' }}>Automation Scripts</h3>
+                <p style={{ margin: 0, fontFamily: "var(--font-body, 'Manrope', sans-serif)", fontSize: '12px', color: 'var(--qa-text-mid)' }}>Upload your complete automation project as a ZIP file</p>
+              </div>
+              {canEdit && (
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px', background: 'var(--qa-accent)', color: '#fff', borderRadius: '8px', cursor: uploadingZip ? 'not-allowed' : 'pointer', fontFamily: "var(--font-heading, 'Montserrat', sans-serif)", fontWeight: 600, fontSize: '12px', opacity: uploadingZip ? 0.7 : 1 }}>
+                  <Upload size={14} />
+                  {uploadingZip ? 'Uploading…' : 'Upload ZIP'}
+                  <input type="file" accept=".zip" hidden onChange={e => { const f = e.target.files?.[0]; if (f) handleZipFile(f); e.target.value = ''; }} disabled={uploadingZip} />
+                </label>
               )}
             </div>
 
-            {/* Hidden file input for script upload */}
-            <input
-              ref={scriptFileRef}
-              type="file"
-              accept=".ts,.py,.js,.spec.ts,.spec.js"
-              style={{ display: 'none' }}
-              onChange={e => {
-                const file = e.target.files?.[0];
-                if (!file || !uploadingScriptId) return;
-                const reader = new FileReader();
-                reader.onload = ev => {
-                  uploadScriptMut.mutate({ id: uploadingScriptId, content: ev.target?.result as string, file_name: file.name });
-                };
-                reader.readAsText(file);
-                e.target.value = '';
-              }}
-            />
+            {/* Drop zone — shown when no ZIPs */}
+            {(scripts as any[]).filter((s: any) => s.type === 'zip').length === 0 && canEdit && (
+              <div
+                onDragOver={e => { e.preventDefault(); setZipDragOver(true); }}
+                onDragLeave={() => setZipDragOver(false)}
+                onDrop={e => { e.preventDefault(); setZipDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleZipFile(f); }}
+                style={{ border: `2px dashed ${zipDragOver ? 'var(--qa-accent)' : C.border}`, borderRadius: '12px', padding: '60px 20px', textAlign: 'center', background: zipDragOver ? 'rgba(59,130,246,0.06)' : 'transparent', transition: 'all 0.2s', cursor: 'pointer' }}
+              >
+                <Upload size={32} color="var(--qa-text-mid)" style={{ margin: '0 auto 12px', display: 'block' }} />
+                <p style={{ fontFamily: "var(--font-body, 'Manrope', sans-serif)", fontSize: '13px', color: 'var(--qa-text-mid)', marginBottom: '8px' }}>Drag and drop your automation ZIP here</p>
+                <p style={{ fontSize: '11px', color: C.textDim, margin: 0 }}>Supports: .zip files only</p>
+              </div>
+            )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(290px,1fr))', gap: '14px' }}>
-              {(scripts as any[]).map((s: any) => (
-                <GCard key={s.id} style={{ padding: '20px' }} glow={s.type === 'playwright' ? C.green : C.purple}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                    <Chip text={s.type.toUpperCase()} color={s.type === 'playwright' ? C.green : C.purple} />
-                  </div>
-                  <div style={{ fontSize: '12px', color: C.text, fontFamily: "'JetBrains Mono',monospace", marginBottom: '4px', fontWeight: '600' }}>{s.script_name}</div>
-                  <div style={{ fontSize: '11px', color: C.textDim, marginBottom: '10px' }}>{s.type === 'playwright' ? 'Playwright test script' : 'Selenium mobile script'}</div>
-                  {s.file_name ? (
-                    <div style={{ fontSize: '10px', color: C.green, fontFamily: "'JetBrains Mono',monospace", marginBottom: '14px', padding: '7px 10px', background: `${C.green}10`, borderRadius: '6px', border: `1px solid ${C.green}20` }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><FileText size={12} />{s.file_name}</div>
-                      {s.uploaded_at && <div style={{ color: C.textDim, marginTop: '2px' }}>Uploaded {new Date(s.uploaded_at).toLocaleDateString()}</div>}
+            {/* ZIP list */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {(scripts as any[]).filter((s: any) => s.type === 'zip').map((s: any) => (
+                <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px', background: 'var(--qa-card)', border: '1px solid var(--qa-border-lt)', borderRadius: '10px' }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f59e0b', fontFamily: "'JetBrains Mono',monospace", fontSize: '10px', fontWeight: 700, flexShrink: 0 }}>ZIP</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontFamily: "var(--font-body, 'Manrope', sans-serif)", fontWeight: 600, fontSize: '13px', color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.zip_name || s.script_name || 'automation.zip'}</div>
+                    <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '10px', color: 'var(--qa-text-mid)', marginTop: '3px' }}>
+                      {s.zip_size ? `${(s.zip_size / 1024).toFixed(1)} KB · ` : ''}{new Date(s.created_at).toLocaleDateString('en-GB')}
                     </div>
-                  ) : (
-                    <div style={{ fontSize: '10px', color: C.textDim, fontFamily: "'JetBrains Mono',monospace", marginBottom: '14px', padding: '7px 10px', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', border: `1px solid ${C.border}` }}>No script uploaded</div>
-                  )}
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {canEdit && (
-                      <Btn sm v="ghost" onClick={() => { setUploadingScriptId(s.id); scriptFileRef.current?.click(); }} disabled={uploadScriptMut.isPending && uploadingScriptId === s.id}>
-                        ⬆ Upload
-                      </Btn>
-                    )}
-                    {s.file_name && <Btn sm v="ghost" onClick={() => downloadScript(s)}>⬇ Download</Btn>}
-                    {canDelete && <Btn sm v="danger" onClick={() => setConfirmDelete({ type: 'script', id: s.id, label: s.script_name })}>Delete</Btn>}
                   </div>
-                </GCard>
-              ))}
-              {(scripts as any[]).length === 0 && (
-                <div style={{ textAlign: 'center', padding: '80px 20px', fontFamily: "'JetBrains Mono',monospace", gridColumn: '1 / -1' }}>
-                  <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: `${C.purple}10`, border: `1px solid ${C.purple}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', margin: '0 auto 16px' }}>⚡</div>
-                  <div style={{ color: C.text, fontWeight: '600', marginBottom: '6px', fontSize: '14px' }}>No automation scripts</div>
-                  <div style={{ fontSize: '12px', color: 'var(--qa-text-faint)', maxWidth: '280px', margin: '0 auto', lineHeight: 1.6 }}>Scripts are auto-created when you create a project. If missing, try re-saving the project.</div>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button onClick={() => downloadZipScript(s)} title="Download"
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(59,130,246,0.4)'; (e.currentTarget as HTMLButtonElement).style.color = C.accent; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.border; (e.currentTarget as HTMLButtonElement).style.color = C.textDim; }}
+                      style={{ padding: '6px', background: 'none', border: `1px solid ${C.border}`, borderRadius: '6px', cursor: 'pointer', color: C.textDim, display: 'flex', alignItems: 'center', transition: 'all 0.15s' }}>
+                      <Download size={14} />
+                    </button>
+                    {canDelete && (
+                      <button onClick={() => setConfirmDelete({ type: 'script', id: s.id, label: s.zip_name || s.script_name })} title="Delete"
+                        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(239,68,68,0.3)'; (e.currentTarget as HTMLButtonElement).style.color = C.red; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.border; (e.currentTarget as HTMLButtonElement).style.color = C.textDim; }}
+                        style={{ padding: '6px', background: 'none', border: `1px solid ${C.border}`, borderRadius: '6px', cursor: 'pointer', color: C.textDim, display: 'flex', alignItems: 'center', transition: 'all 0.15s' }}>
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
                 </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* CREDENTIALS */}
+        {page === 'credentials' && (
+          <div className="fu">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+              <div>
+                <h3 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: '700', color: C.text, fontFamily: "var(--font-heading, 'Montserrat', sans-serif)", letterSpacing: '-0.3px' }}>Project Credentials</h3>
+                <p style={{ margin: 0, fontFamily: "var(--font-body, 'Manrope', sans-serif)", fontSize: '12px', color: 'var(--qa-text-mid)' }}>Stored credentials for testing. Visible to QA and Developers.</p>
+              </div>
+              {canEdit && (
+                <button onClick={() => setShowCredForm(true)}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 14px', background: 'var(--qa-accent)', color: '#fff', border: 'none', borderRadius: '8px', fontFamily: "var(--font-heading, 'Montserrat', sans-serif)", fontWeight: 600, fontSize: '12px', cursor: 'pointer' }}>
+                  <Plus size={14} /> Add Credential
+                </button>
               )}
             </div>
 
+            {/* Add form */}
+            {showCredForm && canEdit && (() => {
+              const inStyle: React.CSSProperties = { width: '100%', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '7px', padding: '8px 10px', fontFamily: "var(--font-body, 'Manrope', sans-serif)", fontSize: '12px', color: C.text, outline: 'none', boxSizing: 'border-box' };
+              const lblStyle: React.CSSProperties = { display: 'block', fontSize: '10px', color: 'var(--qa-text-mid)', marginBottom: '5px', fontFamily: "var(--font-body, 'Manrope', sans-serif)", fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' };
+              return (
+                <div style={{ background: 'var(--qa-card)', border: `1px solid rgba(59,130,246,0.3)`, borderRadius: '12px', padding: '20px', marginBottom: '16px' }}>
+                  <div style={{ fontFamily: "var(--font-heading, 'Montserrat', sans-serif)", fontSize: '13px', fontWeight: 600, color: C.text, marginBottom: '16px' }}>Add New Credential</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div><label style={lblStyle}>User Role *</label><input value={credForm.user_role} onChange={e => setCredForm(f => ({ ...f, user_role: e.target.value }))} placeholder="e.g. Admin, Customer, Guest…" style={inStyle} /></div>
+                    <div><label style={lblStyle}>Username *</label><input value={credForm.username} onChange={e => setCredForm(f => ({ ...f, username: e.target.value }))} placeholder="Enter username" style={inStyle} /></div>
+                    <div><label style={lblStyle}>Password *</label><input type="password" value={credForm.password} onChange={e => setCredForm(f => ({ ...f, password: e.target.value }))} placeholder="Enter password" style={inStyle} /></div>
+                    <div><label style={lblStyle}>URL</label><input value={credForm.url} onChange={e => setCredForm(f => ({ ...f, url: e.target.value }))} placeholder="https://…" style={inStyle} /></div>
+                    <div style={{ gridColumn: 'span 2' }}><label style={lblStyle}>Notes</label><input value={credForm.notes} onChange={e => setCredForm(f => ({ ...f, notes: e.target.value }))} placeholder="Any additional notes…" style={inStyle} /></div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '16px', justifyContent: 'flex-end' }}>
+                    <button onClick={() => { setShowCredForm(false); setCredForm({ user_role: '', username: '', password: '', url: '', notes: '' }); }}
+                      style={{ padding: '7px 14px', background: 'none', border: `1px solid ${C.border}`, borderRadius: '7px', color: 'var(--qa-text-mid)', cursor: 'pointer', fontFamily: "var(--font-body, 'Manrope', sans-serif)", fontSize: '12px' }}>Cancel</button>
+                    <button
+                      disabled={credPending || !credForm.user_role || !credForm.username || !credForm.password}
+                      onClick={async () => {
+                        if (!credForm.user_role || !credForm.username || !credForm.password) return;
+                        setCredPending(true);
+                        try {
+                          const newCred = await addCredential(project.id, credForm);
+                          setCreds(prev => [...prev, newCred]);
+                          setShowCredForm(false);
+                          setCredForm({ user_role: '', username: '', password: '', url: '', notes: '' });
+                          toast.success('Credential added');
+                        } catch { toast.error('Failed to add credential'); }
+                        finally { setCredPending(false); }
+                      }}
+                      style={{ padding: '7px 16px', background: credPending ? 'rgba(59,130,246,0.5)' : 'var(--qa-accent)', color: '#fff', border: 'none', borderRadius: '7px', fontFamily: "var(--font-heading, 'Montserrat', sans-serif)", fontWeight: 600, fontSize: '12px', cursor: credPending ? 'not-allowed' : 'pointer' }}>
+                      {credPending ? 'Saving…' : 'Save'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* List */}
+            {creds.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '80px 20px' }}>
+                <KeyRound size={32} color="var(--qa-text-mid)" style={{ margin: '0 auto 12px', display: 'block' }} />
+                <p style={{ color: 'var(--qa-text-mid)', fontFamily: "var(--font-body, 'Manrope', sans-serif)", fontSize: '13px' }}>No credentials stored yet.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {creds.map((cred: any) => {
+                  const fieldBox: React.CSSProperties = { background: 'var(--qa-surface)', border: `1px solid ${C.border}`, borderRadius: '7px', padding: '8px 12px' };
+                  const fieldLbl: React.CSSProperties = { fontSize: '9px', color: 'var(--qa-text-mid)', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: "var(--font-body, 'Manrope', sans-serif)", marginBottom: '4px' };
+                  const copyBtn = (text: string, id: string) => (
+                    <button onClick={() => copyToClipboard(text, id)} title="Copy"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: copiedId === id ? '#10b981' : 'var(--qa-text-mid)', padding: '2px', flexShrink: 0, display: 'flex', alignItems: 'center', transition: 'color 0.15s' }}>
+                      {copiedId === id ? <Check size={13} /> : <Copy size={13} />}
+                    </button>
+                  );
+                  return (
+                    <div key={cred.id} style={{ background: 'var(--qa-card)', border: `1px solid ${C.border}`, borderRadius: '10px', padding: '16px 18px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                        <span style={{ padding: '3px 10px', borderRadius: '999px', background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.25)', color: 'var(--qa-accent)', fontSize: '11px', fontWeight: 600, fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>{cred.user_role}</span>
+                        {canEdit && (
+                          <button onClick={async () => {
+                            if (!window.confirm('Delete this credential?')) return;
+                            try { await deleteCredential(project.id, cred.id); setCreds(prev => prev.filter((c: any) => c.id !== cred.id)); toast.success('Deleted'); } catch { toast.error('Failed'); }
+                          }}
+                            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(239,68,68,0.3)'; (e.currentTarget as HTMLButtonElement).style.color = C.red; }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.border; (e.currentTarget as HTMLButtonElement).style.color = 'var(--qa-text-mid)'; }}
+                            style={{ padding: '5px', background: 'none', border: `1px solid ${C.border}`, borderRadius: '6px', cursor: 'pointer', color: 'var(--qa-text-mid)', display: 'flex', alignItems: 'center', transition: 'all 0.15s' }}>
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                        <div style={fieldBox}>
+                          <div style={fieldLbl}>Username</div>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                            <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '12px', color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cred.username}</span>
+                            {copyBtn(cred.username, `u-${cred.id}`)}
+                          </div>
+                        </div>
+                        <div style={fieldBox}>
+                          <div style={fieldLbl}>Password</div>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                            <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '12px', color: C.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {visiblePasswords.has(cred.id) ? cred.password : '••••••••'}
+                            </span>
+                            <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+                              <button onClick={() => togglePassword(cred.id)} title={visiblePasswords.has(cred.id) ? 'Hide' : 'Show'}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--qa-text-mid)', padding: '2px', display: 'flex', alignItems: 'center' }}>
+                                {visiblePasswords.has(cred.id) ? <EyeOff size={13} /> : <Eye size={13} />}
+                              </button>
+                              {copyBtn(cred.password, `p-${cred.id}`)}
+                            </div>
+                          </div>
+                        </div>
+                        {cred.url && (
+                          <div style={{ ...fieldBox, gridColumn: 'span 2' }}>
+                            <div style={fieldLbl}>URL</div>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                              <a href={cred.url} target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '12px', color: 'var(--qa-accent)', textDecoration: 'underline', textUnderlineOffset: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cred.url}</a>
+                              {copyBtn(cred.url, `url-${cred.id}`)}
+                            </div>
+                          </div>
+                        )}
+                        {cred.notes && (
+                          <div style={{ ...fieldBox, gridColumn: 'span 2' }}>
+                            <div style={fieldLbl}>Notes</div>
+                            <p style={{ fontFamily: "var(--font-body, 'Manrope', sans-serif)", fontSize: '12px', color: C.text, lineHeight: 1.5, margin: 0 }}>{cred.notes}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
