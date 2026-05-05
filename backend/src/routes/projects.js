@@ -88,12 +88,12 @@ router.get('/:id', authenticate, async (req, res) => {
 // POST create project — creator becomes owner via created_by
 router.post('/', authenticate, async (req, res) => {
   try {
-    const { name, project_code, app_type, figma_url, frd_url, description } = req.body;
+    const { name, project_code, app_type, figma_url, frd_url, description, start_date, end_date, ba_name, designer_name, project_type } = req.body;
     if (!name || !project_code || !app_type) return res.status(400).json({ error: 'name, project_code, app_type required' });
 
     const { data: project, error } = await supabase
       .from('projects')
-      .insert({ name, project_code: project_code.toUpperCase(), app_type, figma_url, frd_url, description, created_by: req.user.id })
+      .insert({ name, project_code: project_code.toUpperCase(), app_type, figma_url, frd_url, description, start_date: start_date || null, end_date: end_date || null, ba_name: ba_name || null, designer_name: designer_name || null, project_type: project_type || null, created_by: req.user.id })
       .select().single();
     if (error) throw error;
 
@@ -113,7 +113,7 @@ router.patch('/:id', authenticate, async (req, res) => {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
-    const allowed = ['name', 'app_type', 'status', 'figma_url', 'frd_url', 'description', 'project_code', 'additional_qas'];
+    const allowed = ['name', 'app_type', 'status', 'figma_url', 'frd_url', 'description', 'project_code', 'additional_qas', 'start_date', 'end_date', 'ba_name', 'designer_name', 'project_type'];
     const updates = Object.fromEntries(Object.entries(req.body).filter(([k]) => allowed.includes(k)));
     const { data, error } = await supabase.from('projects').update(updates).eq('id', req.params.id).select().single();
     if (error) throw error;

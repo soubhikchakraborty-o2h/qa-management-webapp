@@ -115,6 +115,15 @@ function ProjCard({ p, onClick, onDelete, viewOnly }: { p: any; onClick: () => v
           color: 'var(--qa-text-mid)',
           fontFamily: "'JetBrains Mono',monospace", fontWeight: 600,
         }}>{APP_TYPE_ICON[p.app_type]} {p.app_type?.toUpperCase()}</span>
+        {p.project_type && (
+          <span style={{
+            fontSize: '10px', padding: '3px 8px', borderRadius: '6px',
+            background: p.project_type === 'internal' ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)',
+            color: p.project_type === 'internal' ? '#10b981' : '#f59e0b',
+            fontFamily: "'JetBrains Mono',monospace", fontWeight: 600,
+            border: `1px solid ${p.project_type === 'internal' ? 'rgba(16,185,129,0.25)' : 'rgba(245,158,11,0.25)'}`,
+          }}>{p.project_type === 'internal' ? 'Internal' : 'External'}</span>
+        )}
       </div>
 
       {/* Pass rate */}

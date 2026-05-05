@@ -117,7 +117,7 @@ export const getHRReport = (from: string, to: string) =>
   api.get(`/reports/hr?from=${from}&to=${to}`).then(r => r.data);
 
 // ── Global Members ────────────────────────────────────────────
-export const getGlobalMembers = (type?: 'developer' | 'ba') =>
+export const getGlobalMembers = (type?: 'developer' | 'ba' | 'designer') =>
   api.get(`/members${type ? `?type=${type}` : ''}`).then(r => r.data);
 export const addGlobalMember = (data: { name: string; type: string; department?: string }) =>
   api.post('/members', data).then(r => r.data);

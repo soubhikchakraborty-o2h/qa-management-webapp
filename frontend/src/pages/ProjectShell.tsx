@@ -8,9 +8,9 @@ import autoTable from 'jspdf-autotable';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { C, STATUS_COLORS, QA_STATUS_COLORS, STATUS_LABELS, APP_TYPE_ICON, PRIORITY_COLORS, LABEL_COLORS, PLATFORM_COLORS } from '../lib/constants';
-import { getTestCases, createTestCase, updateTestCase, deleteTestCase, getBugs, createBug, updateBug, deleteBug, addComment, getComments, getAutomation, updateScript, deleteAutomationScript, uploadScript, getDocuments, addDocument, deleteDocument, updateProject, getSettings, getTeam, reassignProject, addAdditionalQA, getRoster, updateRoster, addBugResource, deleteBugResource, bulkImportTestCases, bulkImportBugs } from '../lib/api';
+import { getTestCases, createTestCase, updateTestCase, deleteTestCase, getBugs, createBug, updateBug, deleteBug, addComment, getComments, getAutomation, updateScript, deleteAutomationScript, uploadScript, getDocuments, addDocument, deleteDocument, updateProject, getSettings, getTeam, reassignProject, addAdditionalQA, getRoster, updateRoster, addBugResource, deleteBugResource, bulkImportTestCases, bulkImportBugs, getGlobalMembers } from '../lib/api';
 import { GCard, Chip, Btn, Modal, Inp, Sel, ConfirmDeleteModal } from '../components/ui/index';
-import { Link, FileText, User, Calendar, ExternalLink, Trash2, ChevronLeft } from 'lucide-react';
+import { Link, FileText, User, Calendar, ExternalLink, Trash2, ChevronLeft, ChevronDown } from 'lucide-react';
 import { OverheadTabs } from '../components/layout/index';
 
 // ── DeveloperComboInput ───────────────────────────────────────
@@ -864,6 +864,14 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
   const [figmaInputVal, setFigmaInputVal] = useState('');
   const [frdInputVal, setFrdInputVal] = useState('');
 
+  // Project details editing
+  const [editingDetails, setEditingDetails] = useState(false);
+  const [detailStartDate, setDetailStartDate] = useState(project.start_date || '');
+  const [detailEndDate, setDetailEndDate] = useState(project.end_date || '');
+  const [detailBAName, setDetailBAName] = useState(project.ba_name || '');
+  const [detailDesignerName, setDetailDesignerName] = useState(project.designer_name || '');
+  const [detailProjectType, setDetailProjectType] = useState(project.project_type || '');
+
   // Bug form
   const [bModule, setBModule] = useState(''); const [bSummary, setBSummary] = useState('');
   const [bAssignee, setBAssignee] = useState(''); const [bDevelopedBy, setBDevelopedBy] = useState('');
@@ -896,6 +904,10 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
     queryFn: getTeam,
     enabled: canReassign && !!localStorage.getItem('qa_token'),
   });
+
+  const { data: globalMembers = [] } = useQuery({ queryKey: ['global_members'], queryFn: () => getGlobalMembers(), enabled: page === 'overview' });
+  const baNames: string[] = (globalMembers as any[]).filter((m: any) => m.type === 'ba').map((m: any) => m.name);
+  const designerNames: string[] = (globalMembers as any[]).filter((m: any) => m.type === 'designer').map((m: any) => m.name);
 
   const labelOptions: string[] = (settings?.label || []).map((s: any) => s.value);
   const platformOptions: string[] = (settings?.platform || []).map((s: any) => s.value).filter(Boolean);
@@ -1386,6 +1398,7 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                   }}>
                     <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: STATUS_COLORS[localStatus] }} />
                     {STATUS_LABELS[localStatus] || localStatus}
+                    {canEdit && <ChevronDown size={11} style={{ opacity: 0.7 }} />}
                   </span>
                 </div>
                 {canEdit && showStatusDropdown && (
@@ -1532,6 +1545,83 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                     style={{ flex: 1, maxWidth: '260px', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '8px 12px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }}
                   />
                   <Btn sm v="primary" onClick={() => { if (newDevName.trim()) rosterMut.mutate({ name: newDevName.trim(), action: 'add' }); }} disabled={rosterMut.isPending || !newDevName.trim()}>＋ Add</Btn>
+                </div>
+              )}
+            </GCard>
+
+            {/* Project Details */}
+            <GCard style={{ padding: '20px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <div style={{ fontSize: '10px', fontWeight: '700', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.08em', textTransform: 'uppercase' }}>📋 Project Details</div>
+                {canEdit && !editingDetails && (
+                  <button onClick={() => setEditingDetails(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.accent, fontSize: '11px', fontFamily: "'JetBrains Mono',monospace", padding: 0 }}>Edit</button>
+                )}
+              </div>
+              {editingDetails ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: '140px' }}>
+                      <div style={{ fontSize: '9.5px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>Start Date</div>
+                      <input type="date" value={detailStartDate} onChange={e => setDetailStartDate(e.target.value)}
+                        style={{ width: '100%', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '7px 10px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: '140px' }}>
+                      <div style={{ fontSize: '9.5px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>End Date</div>
+                      <input type="date" value={detailEndDate} onChange={e => setDetailEndDate(e.target.value)}
+                        style={{ width: '100%', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '7px 10px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }} />
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '9.5px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>Business Analyst</div>
+                    <select value={detailBAName} onChange={e => setDetailBAName(e.target.value)}
+                      style={{ width: '100%', background: 'var(--qa-select-bg)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '8px 10px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }}>
+                      <option value="">— None —</option>
+                      {baNames.map(n => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '9.5px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>Designer</div>
+                    <select value={detailDesignerName} onChange={e => setDetailDesignerName(e.target.value)}
+                      style={{ width: '100%', background: 'var(--qa-select-bg)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '8px 10px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }}>
+                      <option value="">— None —</option>
+                      {designerNames.map(n => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '9.5px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>Project Type</div>
+                    <select value={detailProjectType} onChange={e => setDetailProjectType(e.target.value)}
+                      style={{ width: '100%', background: 'var(--qa-select-bg)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '8px 10px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }}>
+                      <option value="">— Not set —</option>
+                      <option value="internal">Internal</option>
+                      <option value="external">External</option>
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                    <Btn sm onClick={() => {
+                      updateProjectMut.mutate({ start_date: detailStartDate || null, end_date: detailEndDate || null, ba_name: detailBAName || null, designer_name: detailDesignerName || null, project_type: detailProjectType || null });
+                      setEditingDetails(false);
+                    }} disabled={updateProjectMut.isPending}>Save</Btn>
+                    <Btn sm v="ghost" onClick={() => {
+                      setDetailStartDate(project.start_date || ''); setDetailEndDate(project.end_date || '');
+                      setDetailBAName(project.ba_name || ''); setDetailDesignerName(project.designer_name || '');
+                      setDetailProjectType(project.project_type || ''); setEditingDetails(false);
+                    }}>Cancel</Btn>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 20px' }}>
+                  {[
+                    { l: 'Start Date', v: project.start_date ? new Date(project.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—' },
+                    { l: 'End Date', v: project.end_date ? new Date(project.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—' },
+                    { l: 'Business Analyst', v: project.ba_name || '—' },
+                    { l: 'Designer', v: project.designer_name || '—' },
+                    { l: 'Project Type', v: project.project_type ? project.project_type.charAt(0).toUpperCase() + project.project_type.slice(1) : '—' },
+                  ].map(({ l, v }) => (
+                    <div key={l}>
+                      <div style={{ fontSize: '9.5px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>{l}</div>
+                      <div style={{ fontSize: '12px', color: v === '—' ? C.textDim : C.text, fontFamily: "'JetBrains Mono',monospace", fontWeight: v === '—' ? 400 : 600 }}>{v}</div>
+                    </div>
+                  ))}
                 </div>
               )}
             </GCard>

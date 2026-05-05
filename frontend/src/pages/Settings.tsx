@@ -241,14 +241,16 @@ const DEPARTMENTS = ['CTO', 'Frontend', 'Fullstack', 'Mobile', 'DevOps', 'BA'];
 function MembersManagement() {
   const qc = useQueryClient();
   const [showAdd, setShowAdd] = useState(false);
-  const [addType, setAddType] = useState<'developer' | 'ba'>('developer');
+  const [addType, setAddType] = useState<'developer' | 'ba' | 'designer'>('developer');
   const [addName, setAddName] = useState('');
   const [addDept, setAddDept] = useState('Fullstack');
 
   const { data: members = [] } = useQuery({ queryKey: ['global_members'], queryFn: () => getGlobalMembers() });
 
+  const formatType = (t: string) => t === 'ba' ? 'BA' : t.charAt(0).toUpperCase() + t.slice(1);
+
   const addMut = useMutation({
-    mutationFn: () => addGlobalMember({ name: addName.trim(), type: addType, department: addType === 'developer' ? addDept : 'BA' }),
+    mutationFn: () => addGlobalMember({ name: addName.trim(), type: addType, department: addType === 'developer' ? addDept : addType === 'ba' ? 'BA' : 'Design' }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['global_members'] }); toast.success('Member added'); setShowAdd(false); setAddName(''); },
     onError: (e: any) => toast.error(e.response?.data?.error || 'Failed'),
   });
@@ -260,6 +262,7 @@ function MembersManagement() {
 
   const developers = (members as any[]).filter((m: any) => m.type === 'developer');
   const bas = (members as any[]).filter((m: any) => m.type === 'ba');
+  const designers = (members as any[]).filter((m: any) => m.type === 'designer');
 
   const byDept: Record<string, any[]> = {};
   developers.forEach((d: any) => {
@@ -303,7 +306,7 @@ function MembersManagement() {
       </GCard>
 
       {/* BAs section */}
-      <GCard style={{ padding: '18px 20px' }}>
+      <GCard style={{ padding: '18px 20px', marginBottom: '14px' }}>
         <div style={{ fontSize: '11px', fontWeight: 700, color: C.yellow, fontFamily: "var(--font-body, 'Manrope', sans-serif)", letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: '12px' }}>Business Analysts ({bas.length})</div>
         <div style={{ display: 'flex', flexWrap: 'wrap' }}>
           {bas.map((m: any) => (
@@ -315,12 +318,28 @@ function MembersManagement() {
         </div>
       </GCard>
 
+      {/* Designers section */}
+      <GCard style={{ padding: '18px 20px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 700, color: C.pink, fontFamily: "var(--font-body, 'Manrope', sans-serif)", letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: '12px' }}>Designers ({designers.length})</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+          {designers.map((m: any) => (
+            <span key={m.id} style={chipStyle(C.pink)}>
+              {m.name}
+              <button onClick={() => deleteMut.mutate(m.id)} title="Remove" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: '0', fontSize: '11px', lineHeight: 1, opacity: 0.65 }}>×</button>
+            </span>
+          ))}
+        </div>
+      </GCard>
+
       {showAdd && (
         <Modal title="Add Member" onClose={() => { setShowAdd(false); setAddName(''); }}>
-          <Sel label="Type" opts={['developer', 'ba']} value={addType} onChange={v => setAddType(v as any)} />
+          <Sel label="Type" opts={[{ v: 'developer', l: 'Developer' }, { v: 'ba', l: 'BA' }, { v: 'designer', l: 'Designer' }]} value={addType} onChange={v => setAddType(v as any)} />
           <Inp label="Name" ph="Full name" value={addName} onChange={setAddName} req />
           {addType === 'developer' && (
             <Sel label="Department" opts={DEPARTMENTS.filter(d => d !== 'BA')} value={addDept} onChange={setAddDept} />
+          )}
+          {addType === 'designer' && (
+            <Sel label="Department" opts={['Design']} value="Design" onChange={() => {}} />
           )}
           <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
             <Btn onClick={() => addName.trim() && addMut.mutate()} disabled={addMut.isPending || !addName.trim()}>
