@@ -100,6 +100,13 @@ export const deleteAutomationScript = (id: string) => api.delete(`/automation/${
 export const saveRunConfig = (id: string, data: any) => api.post(`/automation/${id}/run-config`, data).then(r => r.data);
 export const uploadScript = (id: string, data: { content: string; file_name: string }) =>
   api.post(`/automation/${id}/upload`, data).then(r => r.data);
+export const uploadZip = (data: { project_id: string; zip_name: string; zip_size: number; content: string }) =>
+  api.post('/automation/zip', data).then(r => r.data);
+
+// ── Credentials ───────────────────────────────────────────────
+export const getCredentials = (projectId: string) => api.get(`/projects/${projectId}/credentials`).then(r => r.data);
+export const addCredential = (projectId: string, data: any) => api.post(`/projects/${projectId}/credentials`, data).then(r => r.data);
+export const deleteCredential = (projectId: string, credId: string) => api.delete(`/projects/${projectId}/credentials/${credId}`).then(r => r.data);
 
 // ── Documents ─────────────────────────────────────────────────
 export const getDocuments = (projectId: string) => api.get(`/documents?project_id=${projectId}`).then(r => r.data);

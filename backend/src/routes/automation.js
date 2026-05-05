@@ -43,6 +43,19 @@ router.delete('/:id', authenticate, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// POST create new ZIP script record
+router.post('/zip', authenticate, async (req, res) => {
+  try {
+    const { project_id, zip_name, zip_size, content } = req.body;
+    if (!project_id || !zip_name) return res.status(400).json({ error: 'project_id and zip_name required' });
+    const { data, error } = await supabase.from('automation_scripts')
+      .insert({ project_id, type: 'zip', script_name: zip_name, zip_name, zip_size: zip_size || 0, script_content: content || '', created_by: req.user?.id })
+      .select().single();
+    if (error) throw error;
+    res.status(201).json(data);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 router.post('/:id/run-config', async (req, res) => {
   try {
     const run_config = { ...req.body, saved_at: new Date().toISOString() };

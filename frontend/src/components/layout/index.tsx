@@ -52,6 +52,7 @@ export function Sidebar({ page, setPage, user, insideProject, onBackToProjects, 
   const [confirming, setConfirming] = useState(false);
   const [hovSign, setHovSign] = useState(false);
   const [hovTheme, setHovTheme] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [avatarHov, setAvatarHov] = useState(false);
   const [hovChangePw, setHovChangePw] = useState(false);
@@ -229,8 +230,9 @@ export function Sidebar({ page, setPage, user, insideProject, onBackToProjects, 
             <NavItem label="Overview"    icon="◉" active={page === 'overview'}   onClick={() => setPage('overview')}   indent />
             <NavItem label="Test Cases"  icon="✓" active={page === 'testcases'}  onClick={() => setPage('testcases')}  indent />
             <NavItem label="Bug Tracker" icon="⬡" active={page === 'bugs'}       onClick={() => setPage('bugs')}       indent />
-            <NavItem label="Automation"  icon="▶" active={page === 'automation'} onClick={() => setPage('automation')} indent />
-            <NavItem label="Documents"   icon="◫" active={page === 'documents'}  onClick={() => setPage('documents')}  indent />
+            <NavItem label="Automation"   icon="▶" active={page === 'automation'}   onClick={() => setPage('automation')}   indent />
+            <NavItem label="Credentials"  icon="⚿" active={page === 'credentials'} onClick={() => setPage('credentials')} indent />
+            <NavItem label="Documents"    icon="◫" active={page === 'documents'}   onClick={() => setPage('documents')}   indent />
             <div style={{ margin: '10px 2px', borderTop: '1px solid rgba(255,255,255,0.06)' }} />
           </>}
           {['admin', 'qa_lead'].includes(user.role) && (
@@ -325,8 +327,13 @@ export function Sidebar({ page, setPage, user, insideProject, onBackToProjects, 
             </div>
           )}
 
-          {/* Version */}
-          <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.18)', fontFamily: "'JetBrains Mono', monospace", textAlign: 'center', padding: '10px 8px 2px' }}>v1.0.0 — O2H Technology</div>
+          {/* Version — clickable */}
+          <div
+            onClick={() => setShowAbout(true)}
+            onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.color = 'var(--qa-accent)'}
+            onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.color = 'rgba(255,255,255,0.18)'}
+            style={{ fontSize: '9px', color: 'rgba(255,255,255,0.18)', fontFamily: "'JetBrains Mono', monospace", textAlign: 'center', padding: '10px 8px 2px', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: '2px', transition: 'color 0.15s' }}
+          >v1.0.0 — O2H Technology</div>
         </div>
       </div>
     </div>
@@ -365,6 +372,46 @@ export function Sidebar({ page, setPage, user, insideProject, onBackToProjects, 
       </div>
     )}
 
+    {/* About modal */}
+    {showAbout && (
+      <div
+        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}
+        onClick={() => setShowAbout(false)}
+      >
+        <div onClick={e => e.stopPropagation()} style={{ background: 'var(--qa-card)', border: '1px solid var(--qa-border-lt)', borderRadius: '16px', padding: '32px', width: '480px', maxWidth: '90vw', boxShadow: '0 24px 80px rgba(0,0,0,0.4)' }}>
+          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+            <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '24px' }}>🐞</div>
+            <h2 style={{ fontFamily: "var(--font-heading, 'Montserrat', sans-serif)", fontSize: '22px', fontWeight: 700, color: 'var(--qa-text)', margin: '0 0 4px' }}>Quality Analysis</h2>
+            <div style={{ fontSize: '11px', color: 'var(--qa-text-mid)', fontFamily: "'JetBrains Mono',monospace" }}>v1.0.0 — O2H Technology</div>
+          </div>
+          <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', marginBottom: '20px' }} />
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ fontFamily: "var(--font-heading, 'Montserrat', sans-serif)", fontSize: '11px', fontWeight: 600, color: 'var(--qa-text-mid)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '10px' }}>About</div>
+            <p style={{ fontFamily: "var(--font-body, 'Manrope', sans-serif)", fontSize: '13px', color: 'var(--qa-text)', lineHeight: 1.7, margin: 0 }}>
+              Quality Analysis is a QA management platform built for O2H Technology to streamline software testing workflows. It enables QA engineers to manage projects, log bugs, track test cases, collaborate with developers and BAs, and generate performance reports — all in one place.
+            </p>
+          </div>
+          <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', marginBottom: '20px' }} />
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{ fontFamily: "var(--font-heading, 'Montserrat', sans-serif)", fontSize: '11px', fontWeight: 600, color: 'var(--qa-text-mid)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px' }}>Author</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'var(--qa-surface)', borderRadius: '10px', border: '1px solid var(--qa-border-lt)' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(59,130,246,0.12)', border: '2px solid rgba(59,130,246,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "var(--font-heading, 'Montserrat', sans-serif)", fontWeight: 700, color: 'var(--qa-accent)', fontSize: '14px', flexShrink: 0 }}>S</div>
+              <div>
+                <div style={{ fontFamily: "var(--font-heading, 'Montserrat', sans-serif)", fontWeight: 600, fontSize: '14px', color: 'var(--qa-text)' }}>Soubhik Chakraborty</div>
+                <div style={{ fontFamily: "var(--font-body, 'Manrope', sans-serif)", fontSize: '11px', color: 'var(--qa-text-mid)', marginTop: '2px' }}>Associate Quality Analyst · Admin · O2H Technology</div>
+              </div>
+            </div>
+          </div>
+          <button onClick={() => setShowAbout(false)}
+            onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.opacity = '0.88'}
+            onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.opacity = '1'}
+            style={{ width: '100%', padding: '10px', background: 'var(--qa-accent)', color: '#fff', border: 'none', borderRadius: '8px', fontFamily: "var(--font-heading, 'Montserrat', sans-serif)", fontWeight: 600, fontSize: '13px', cursor: 'pointer', transition: 'opacity 0.15s' }}>
+            Close
+          </button>
+        </div>
+      </div>
+    )}
+
     {/* Change password modal */}
     {showChangePw && (
       <div style={modalOverlay} onClick={e => e.target === e.currentTarget && (setShowChangePw(false), setPwError(''), setPwCurrent(''), setPwNew(''), setPwConfirm(''))}>
@@ -396,11 +443,12 @@ export function Sidebar({ page, setPage, user, insideProject, onBackToProjects, 
 
 // ── Overhead Tabs ─────────────────────────────────────────────
 const PROJ_TABS = [
-  { id: 'overview',   label: 'Overview',    icon: '◉' },
-  { id: 'testcases',  label: 'Test Cases',  icon: '✓' },
-  { id: 'bugs',       label: 'Bug Tracker', icon: '⬡' },
-  { id: 'automation', label: 'Automation',  icon: '▶' },
-  { id: 'documents',  label: 'Documents',   icon: '◫' },
+  { id: 'overview',     label: 'Overview',     icon: '◉' },
+  { id: 'testcases',   label: 'Test Cases',   icon: '✓' },
+  { id: 'bugs',        label: 'Bug Tracker',  icon: '⬡' },
+  { id: 'automation',  label: 'Automation',   icon: '▶' },
+  { id: 'credentials', label: 'Credentials',  icon: '⚿' },
+  { id: 'documents',   label: 'Documents',    icon: '◫' },
 ];
 
 function TabBadge({ count }: { count: number | undefined }) {

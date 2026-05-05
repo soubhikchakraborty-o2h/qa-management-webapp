@@ -13,6 +13,7 @@ import commentRoutes from './routes/comments.js';
 import reportsRoutes from './routes/reports.js';
 import profileRoutes from './routes/profile.js';
 import membersRouter from './routes/members.js';
+import credentialsRouter from './routes/credentials.js';
 
 dotenv.config();
 
@@ -55,6 +56,7 @@ app.use('/api/comments', commentRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/members', membersRouter);
+app.use('/api/projects/:id/credentials', credentialsRouter);
 
 app.get('/health', (_, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
 

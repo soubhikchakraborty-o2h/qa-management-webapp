@@ -19,6 +19,9 @@ Last Updated: 2026-05-05
 | F10 | Project Details card in Overview | 🟢 Fixed — projects table gets start_date, end_date, ba_name, designer_name, project_type columns; backend allows these in PATCH/POST; Overview shows editable Project Details card with BA/Designer dropdowns from global_members |
 | F11 | Internal/External type chip on project cards | 🟢 Fixed — project_type chip shown in tags row on ProjCard (green for internal, amber for external); hidden when not set |
 | F12 | ChevronDown icon on status chip dropdown | 🟢 Fixed — ChevronDown from lucide-react added inside status chip; only shows when canEdit |
+| F13 | About popup on version click | 🟢 Fixed — version text in sidebar is clickable; About modal with app description and author card (Soubhik Chakraborty) |
+| F14 | Automation tab — ZIP upload replaces predefined cards | 🟢 Fixed — predefined Playwright/Selenium cards removed; clean ZIP upload UI with drag-and-drop, ZIP list with download/delete; base64 stored in DB |
+| F15 | Credentials tab between Automation and Documents | 🟢 Fixed — project_credentials table + backend routes; Credentials tab shows credential cards with masked password, Eye toggle, Copy buttons for username/password/URL; QA can add/delete, developers read-only |
 
 ---
 
