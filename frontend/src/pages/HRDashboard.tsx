@@ -27,7 +27,7 @@ function HRSidebar({ tab, setTab, user, onSignOut, collapsed }: {
     const [hov, setHov] = useState(false);
     return (
       <div onClick={onClick} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
-        style={{ display: 'flex', alignItems: 'center', gap: '9px', padding: active ? '8px 10px 8px 8px' : '8px 10px', borderRadius: '7px', cursor: 'pointer', marginBottom: '1px', background: active ? 'var(--qa-nav-active)' : hov ? 'rgba(124,106,247,0.04)' : 'transparent', border: active ? '1px solid var(--qa-nav-act-bdr)' : '1px solid transparent', borderLeft: active ? '2px solid #7c6af7' : '2px solid transparent', color: active ? C.text : hov ? C.textMid : 'var(--qa-text-faint)', fontSize: '12px', fontWeight: active ? '600' : '400', fontFamily: "'JetBrains Mono', monospace", transition: 'all 0.15s' }}>
+        style={{ display: 'flex', alignItems: 'center', gap: '9px', padding: active ? '8px 10px 8px 8px' : '8px 10px', borderRadius: '7px', cursor: 'pointer', marginBottom: '1px', background: active ? 'var(--qa-nav-active)' : hov ? 'rgba(59,130,246,0.04)' : 'transparent', border: active ? '1px solid var(--qa-nav-act-bdr)' : '1px solid transparent', borderLeft: active ? '2px solid #3B82F6' : '2px solid transparent', color: active ? C.text : hov ? C.textMid : 'var(--qa-text-faint)', fontSize: '12px', fontWeight: active ? '600' : '400', fontFamily: "var(--font-body, 'Manrope', sans-serif)", transition: 'all 0.15s' }}>
         <span style={{ fontSize: '11px', flexShrink: 0 }}>{icon}</span>{label}
       </div>
     );
@@ -38,8 +38,8 @@ function HRSidebar({ tab, setTab, user, onSignOut, collapsed }: {
       <div style={{ width: '210px', display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         {/* Logo */}
         <div style={{ padding: '20px 16px 16px', borderBottom: '1px solid var(--qa-sidebar-bdr)' }}>
-          <div style={{ fontSize: '9px', letterSpacing: '.3em', color: 'var(--qa-text-faint)', fontFamily: "'JetBrains Mono', monospace", marginBottom: '5px', textTransform: 'uppercase' }}>O2H TECHNOLOGY</div>
-          <div style={{ fontSize: '15px', fontWeight: '800', fontFamily: "'JetBrains Mono', monospace", color: C.text, letterSpacing: '-0.3px' }}>Quality Analysis</div>
+          <div style={{ fontSize: '9px', letterSpacing: '.3em', color: 'var(--qa-text-faint)', fontFamily: "var(--font-body, 'Manrope', sans-serif)", marginBottom: '5px', textTransform: 'uppercase' }}>O2H TECHNOLOGY</div>
+          <div style={{ fontSize: '15px', fontWeight: '800', fontFamily: "var(--font-body, 'Manrope', sans-serif)", color: C.text, letterSpacing: '-0.3px' }}>Quality Analysis</div>
         </div>
 
         {/* User */}
@@ -47,7 +47,7 @@ function HRSidebar({ tab, setTab, user, onSignOut, collapsed }: {
           <div style={{ width: '34px', height: '34px', borderRadius: '9px', flexShrink: 0, background: 'linear-gradient(135deg,#34d399,#059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: '700', color: '#ffffff' }}>{user.name[0]}</div>
           <div style={{ overflow: 'hidden' }}>
             <div style={{ fontSize: '12px', fontWeight: '600', color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</div>
-            <div style={{ fontSize: '9px', color: '#34d399', fontFamily: "'JetBrains Mono', monospace", letterSpacing: '.1em', marginTop: '1px' }}>HR</div>
+            <div style={{ fontSize: '9px', color: '#34d399', fontFamily: "var(--font-body, 'Manrope', sans-serif)", letterSpacing: '.1em', marginTop: '1px' }}>HR</div>
           </div>
         </div>
 
@@ -60,7 +60,7 @@ function HRSidebar({ tab, setTab, user, onSignOut, collapsed }: {
         {/* Theme Toggle */}
         <div style={{ padding: '0 8px', borderTop: '1px solid var(--qa-sidebar-bdr)' }}>
           <div onClick={toggleTheme} onMouseEnter={() => setHovTheme(true)} onMouseLeave={() => setHovTheme(false)}
-            style={{ display: 'flex', alignItems: 'center', gap: '9px', padding: '8px 10px', margin: '6px 0', borderRadius: '7px', cursor: 'pointer', background: hovTheme ? 'rgba(124,106,247,0.06)' : 'transparent', border: `1px solid ${hovTheme ? 'rgba(124,106,247,0.2)' : 'transparent'}`, color: hovTheme ? C.accent : 'var(--qa-text-faint)', fontSize: '12px', fontFamily: "'JetBrains Mono', monospace", transition: 'all 0.15s' }}>
+            style={{ display: 'flex', alignItems: 'center', gap: '9px', padding: '8px 10px', margin: '6px 0', borderRadius: '7px', cursor: 'pointer', background: hovTheme ? 'rgba(59,130,246,0.06)' : 'transparent', border: `1px solid ${hovTheme ? 'rgba(59,130,246,0.2)' : 'transparent'}`, color: hovTheme ? C.accent : 'var(--qa-text-faint)', fontSize: '12px', fontFamily: "var(--font-body, 'Manrope', sans-serif)", transition: 'all 0.15s' }}>
             <span style={{ fontSize: '13px', flexShrink: 0 }}>{isDark ? '☀️' : '🌙'}</span>
             {isDark ? 'Light Mode' : 'Dark Mode'}
           </div>
@@ -69,23 +69,23 @@ function HRSidebar({ tab, setTab, user, onSignOut, collapsed }: {
         {/* Sign Out */}
         <div style={{ padding: '0 8px 0', borderTop: '1px solid var(--qa-sidebar-bdr)' }}>
           {confirming ? (
-            <div style={{ margin: '6px 2px 8px', background: `${RED}10`, border: `1px solid ${RED}30`, borderRadius: '8px', padding: '9px 10px', fontFamily: "'JetBrains Mono', monospace" }}>
+            <div style={{ margin: '6px 2px 8px', background: `${RED}10`, border: `1px solid ${RED}30`, borderRadius: '8px', padding: '9px 10px', fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>
               <div style={{ fontSize: '10px', color: C.text, marginBottom: '8px', fontWeight: '600' }}>Sign out?</div>
               <div style={{ display: 'flex', gap: '6px' }}>
-                <button onClick={() => { setConfirming(false); onSignOut(); }} style={{ flex: 1, padding: '5px 0', borderRadius: '6px', border: 'none', cursor: 'pointer', background: RED, color: '#fff', fontSize: '10px', fontWeight: '700', fontFamily: "'JetBrains Mono', monospace" }}>Yes</button>
-                <button onClick={() => setConfirming(false)} style={{ flex: 1, padding: '5px 0', borderRadius: '6px', border: '1px solid var(--qa-border-lt)', cursor: 'pointer', background: 'var(--qa-nav-active)', color: 'var(--qa-text-faint)', fontSize: '10px', fontWeight: '600', fontFamily: "'JetBrains Mono', monospace" }}>No</button>
+                <button onClick={() => { setConfirming(false); onSignOut(); }} style={{ flex: 1, padding: '5px 0', borderRadius: '6px', border: 'none', cursor: 'pointer', background: RED, color: '#fff', fontSize: '10px', fontWeight: '700', fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>Yes</button>
+                <button onClick={() => setConfirming(false)} style={{ flex: 1, padding: '5px 0', borderRadius: '6px', border: '1px solid var(--qa-border-lt)', cursor: 'pointer', background: 'var(--qa-nav-active)', color: 'var(--qa-text-faint)', fontSize: '10px', fontWeight: '600', fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>No</button>
               </div>
             </div>
           ) : (
             <div onClick={() => setConfirming(true)} onMouseEnter={() => setHovSign(true)} onMouseLeave={() => setHovSign(false)}
-              style={{ display: 'flex', alignItems: 'center', gap: '9px', padding: '8px 10px', margin: '6px 0', borderRadius: '7px', cursor: 'pointer', background: hovSign ? `${RED}10` : 'transparent', border: `1px solid ${hovSign ? RED + '30' : 'transparent'}`, color: hovSign ? RED : 'var(--qa-text-faint)', fontSize: '12px', fontFamily: "'JetBrains Mono', monospace", transition: 'all 0.15s' }}>
+              style={{ display: 'flex', alignItems: 'center', gap: '9px', padding: '8px 10px', margin: '6px 0', borderRadius: '7px', cursor: 'pointer', background: hovSign ? `${RED}10` : 'transparent', border: `1px solid ${hovSign ? RED + '30' : 'transparent'}`, color: hovSign ? RED : 'var(--qa-text-faint)', fontSize: '12px', fontFamily: "var(--font-body, 'Manrope', sans-serif)", transition: 'all 0.15s' }}>
               <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}><LogOut size={14} /></span>Sign Out
             </div>
           )}
         </div>
 
         <div style={{ padding: '6px 14px 12px' }}>
-          <div style={{ fontSize: '9px', color: 'var(--qa-text-xfaint)', fontFamily: "'JetBrains Mono', monospace" }}>v1.0.0 · O2H Technology</div>
+          <div style={{ fontSize: '9px', color: 'var(--qa-text-xfaint)', fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>v1.0.0 · O2H Technology</div>
         </div>
       </div>
     </div>
@@ -102,33 +102,33 @@ function HRProjectsView({ onProjectClick }: { onProjectClick: (p: any) => void }
   };
 
   if (isLoading) return (
-    <div style={{ padding: '40px', color: C.textDim, fontFamily: "'JetBrains Mono', monospace", fontSize: '13px' }}>Loading projects…</div>
+    <div style={{ padding: '40px', color: C.textDim, fontFamily: "var(--font-body, 'Manrope', sans-serif)", fontSize: '13px' }}>Loading projects…</div>
   );
 
   return (
     <div style={{ padding: '28px 32px' }} className="fu">
       <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ margin: '0 0 6px', fontSize: '24px', fontWeight: '800', color: C.text, fontFamily: "'JetBrains Mono',monospace" }}>Projects</h1>
-        <div style={{ fontSize: '11px', color: C.textDim, fontFamily: "'JetBrains Mono',monospace" }}>Read-only view · {projects.length} projects</div>
+        <h1 style={{ margin: '0 0 6px', fontSize: '24px', fontWeight: '800', color: C.text, fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>Projects</h1>
+        <div style={{ fontSize: '11px', color: C.textDim, fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>Read-only view · {projects.length} projects</div>
       </div>
 
       {projects.length === 0 ? (
-        <div style={{ color: C.textMid, fontSize: '13px', fontFamily: "'JetBrains Mono',monospace" }}>No projects found.</div>
+        <div style={{ color: C.textMid, fontSize: '13px', fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>No projects found.</div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
           {projects.map((p: any) => (
             <GCard key={p.id} hover glow={C.accent} onClick={() => onProjectClick(p)} style={{ padding: '20px', cursor: 'pointer' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                 <div>
-                  <div style={{ fontSize: '13px', fontWeight: '700', color: C.text, fontFamily: "'JetBrains Mono',monospace", marginBottom: '3px' }}>{p.name}</div>
-                  <div style={{ fontSize: '10px', color: C.accent, fontFamily: "'JetBrains Mono',monospace" }}>{p.project_code}</div>
+                  <div style={{ fontSize: '13px', fontWeight: '700', color: C.text, fontFamily: "var(--font-body, 'Manrope', sans-serif)", marginBottom: '3px' }}>{p.name}</div>
+                  <div style={{ fontSize: '10px', color: C.accent, fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>{p.project_code}</div>
                 </div>
                 <Chip text={(() => { const s = p.status || 'active'; return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase().replace('_', ' '); })()} color={STATUS_COLOR[p.status] || C.textDim} sm />
               </div>
               {p.description && (
                 <div style={{ fontSize: '11px', color: C.textMid, lineHeight: '1.6', marginBottom: '12px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{p.description}</div>
               )}
-              <div style={{ fontSize: '10px', color: C.textDim, fontFamily: "'JetBrains Mono',monospace", display: 'flex', flexDirection: 'column', gap: '3px' }}>
+              <div style={{ fontSize: '10px', color: C.textDim, fontFamily: "var(--font-body, 'Manrope', sans-serif)", display: 'flex', flexDirection: 'column', gap: '3px' }}>
                 <span>QA: {p.created_by_user?.name || 'Unassigned'}</span>
                 {p.developer_roster?.length > 0 && (
                   <span>
@@ -154,7 +154,7 @@ function DateInput({ value, onChange, label }: { value: string; onChange: (v: st
   };
   return (
     <div>
-      <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: 'var(--qa-text-mid)', marginBottom: '6px', fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.07em' }}>{label}</label>
+      <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: 'var(--qa-text-mid)', marginBottom: '6px', fontFamily: "var(--font-body, 'Manrope', sans-serif)", textTransform: 'uppercase', letterSpacing: '.07em' }}>{label}</label>
       <div style={{ position: 'relative', cursor: 'pointer', display: 'inline-block' }}
         onClick={() => { try { (inputRef.current as any)?.showPicker?.(); } catch {} inputRef.current?.focus(); }}>
         <input ref={inputRef} type="date" value={value} onChange={e => onChange(e.target.value)}
@@ -162,7 +162,7 @@ function DateInput({ value, onChange, label }: { value: string; onChange: (v: st
         <div style={{
           background: 'var(--qa-input)', border: `1px solid var(--qa-border)`,
           borderRadius: '8px', padding: '8px 12px',
-          fontFamily: "'JetBrains Mono', monospace", fontSize: '12px',
+          fontFamily: "var(--font-body, 'Manrope', sans-serif)", fontSize: '12px',
           color: value ? 'var(--qa-text)' : 'var(--qa-text-mid)',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           gap: '10px', minWidth: '140px', pointerEvents: 'none',
@@ -460,15 +460,15 @@ function HRReportsView() {
   const inputStyle: any = {
     background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px',
     padding: '8px 12px', color: C.text, fontSize: '12px',
-    fontFamily: "'JetBrains Mono', monospace", outline: 'none',
+    fontFamily: "var(--font-body, 'Manrope', sans-serif)", outline: 'none',
     colorScheme: 'dark',
   };
 
   return (
     <div style={{ padding: '28px 32px', width: '100%' }} className="fu">
       <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ margin: '0 0 6px', fontSize: '24px', fontWeight: '800', color: C.text, fontFamily: "'JetBrains Mono',monospace" }}>HR Reports</h1>
-        <div style={{ fontSize: '11px', color: C.textDim, fontFamily: "'JetBrains Mono',monospace" }}>Generate reports for any date range</div>
+        <h1 style={{ margin: '0 0 6px', fontSize: '24px', fontWeight: '800', color: C.text, fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>HR Reports</h1>
+        <div style={{ fontSize: '11px', color: C.textDim, fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>Generate reports for any date range</div>
       </div>
 
       {/* Date picker */}
@@ -480,7 +480,7 @@ function HRReportsView() {
             {loading ? 'Generating…' : 'Generate Report'}
           </Btn>
         </div>
-        {error && <div style={{ marginTop: '10px', fontSize: '12px', color: '#f87171', fontFamily: "'JetBrains Mono',monospace" }}>{error}</div>}
+        {error && <div style={{ marginTop: '10px', fontSize: '12px', color: '#f87171', fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>{error}</div>}
       </GCard>
 
       {reportData && (
@@ -503,17 +503,17 @@ function HRReportsView() {
               { label: 'Active Projects', value: reportData.totals.activeProjects, color: '#4ade80' },
             ].map(stat => (
               <GCard key={stat.label} style={{ padding: '16px' }} glow={stat.color}>
-                <div style={{ fontSize: '28px', fontWeight: '800', color: stat.color, fontFamily: "'JetBrains Mono',monospace", lineHeight: 1 }}>{stat.value}</div>
-                <div style={{ fontSize: '10px', color: C.textDim, fontFamily: "'JetBrains Mono',monospace", marginTop: '6px', textTransform: 'uppercase', letterSpacing: '.07em' }}>{stat.label}</div>
+                <div style={{ fontSize: '28px', fontWeight: '800', color: stat.color, fontFamily: "var(--font-body, 'Manrope', sans-serif)", lineHeight: 1 }}>{stat.value}</div>
+                <div style={{ fontSize: '10px', color: C.textDim, fontFamily: "var(--font-body, 'Manrope', sans-serif)", marginTop: '6px', textTransform: 'uppercase', letterSpacing: '.07em' }}>{stat.label}</div>
               </GCard>
             ))}
           </div>
 
           {/* QA Performance */}
           <GCard style={{ padding: '20px', marginBottom: '20px' }}>
-            <div style={{ fontSize: '13px', fontWeight: '700', color: C.text, fontFamily: "'JetBrains Mono',monospace", marginBottom: '16px' }}>QA Performance</div>
+            <div style={{ fontSize: '13px', fontWeight: '700', color: C.text, fontFamily: "var(--font-body, 'Manrope', sans-serif)", marginBottom: '16px' }}>QA Performance</div>
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', fontFamily: "'JetBrains Mono',monospace" }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>
                 <thead>
                   <tr>
                     {['Name', 'Role', 'Bugs Logged', 'Test Cases Created'].map(h => (
@@ -537,7 +537,7 @@ function HRReportsView() {
 
           {/* Project Breakdown */}
           <GCard style={{ padding: '20px', marginBottom: '20px' }}>
-            <div style={{ fontSize: '13px', fontWeight: '700', color: C.text, fontFamily: "'JetBrains Mono',monospace", marginBottom: '16px' }}>Project-wise Bug Breakdown</div>
+            <div style={{ fontSize: '13px', fontWeight: '700', color: C.text, fontFamily: "var(--font-body, 'Manrope', sans-serif)", marginBottom: '16px' }}>Project-wise Bug Breakdown</div>
             {Object.entries(reportData.projectBreakdown).map(([name, d]: any) => {
               const bugs = d.bugs as any[];
               const devCounts: Record<string, { total: number; open: number; fixed: number }> = {};
@@ -555,21 +555,21 @@ function HRReportsView() {
                 <div key={name} style={{ marginBottom: '14px', padding: '14px 16px', background: 'var(--qa-input)', borderRadius: '10px', border: `1px solid ${C.border}` }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                     <div>
-                      <span style={{ fontSize: '12px', fontWeight: '700', color: C.text, fontFamily: "'JetBrains Mono',monospace" }}>{name}</span>
-                      <span style={{ fontSize: '10px', color: C.accent, fontFamily: "'JetBrains Mono',monospace", marginLeft: '8px' }}>{d.project_code}</span>
+                      <span style={{ fontSize: '12px', fontWeight: '700', color: C.text, fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>{name}</span>
+                      <span style={{ fontSize: '10px', color: C.accent, fontFamily: "var(--font-body, 'Manrope', sans-serif)", marginLeft: '8px' }}>{d.project_code}</span>
                     </div>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                       <Chip text={d.status || 'unknown'} color='#a78bfa' sm />
-                      <span style={{ fontSize: '10px', color: '#f87171', fontFamily: "'JetBrains Mono',monospace" }}>{bugs.length} bugs</span>
-                      <span style={{ fontSize: '10px', color: '#60a5fa', fontFamily: "'JetBrains Mono',monospace" }}>{d.testCases.length} TCs</span>
+                      <span style={{ fontSize: '10px', color: '#f87171', fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>{bugs.length} bugs</span>
+                      <span style={{ fontSize: '10px', color: '#60a5fa', fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>{d.testCases.length} TCs</span>
                     </div>
                   </div>
                   {Object.keys(devCounts).length > 0 && (
                     <div style={{ marginBottom: '8px' }}>
-                      <div style={{ fontSize: '9px', fontWeight: '700', color: C.textDim, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: '6px' }}>Dev Bugs</div>
+                      <div style={{ fontSize: '9px', fontWeight: '700', color: C.textDim, fontFamily: "var(--font-body, 'Manrope', sans-serif)", letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: '6px' }}>Dev Bugs</div>
                       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                         {Object.entries(devCounts).sort(([,a],[,b]) => b.total - a.total).map(([dev, s]) => (
-                          <div key={dev} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 8px', background: `${C.accent}10`, border: `1px solid ${C.accent}25`, borderRadius: '6px', fontSize: '10px', fontFamily: "'JetBrains Mono',monospace" }}>
+                          <div key={dev} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 8px', background: `${C.accent}10`, border: `1px solid ${C.accent}25`, borderRadius: '6px', fontSize: '10px', fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>
                             <span style={{ color: C.text, fontWeight: 600 }}>{dev}</span>
                             <span style={{ color: '#f87171' }}>{s.total}</span>
                             {s.open > 0 && <span style={{ color: '#fbbf24', fontSize: '9px' }}>({s.open} open)</span>}
@@ -581,10 +581,10 @@ function HRReportsView() {
                   )}
                   {Object.keys(qaStatusCounts).length > 0 && (
                     <div>
-                      <div style={{ fontSize: '9px', fontWeight: '700', color: C.textDim, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: '6px' }}>QA Status</div>
+                      <div style={{ fontSize: '9px', fontWeight: '700', color: C.textDim, fontFamily: "var(--font-body, 'Manrope', sans-serif)", letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: '6px' }}>QA Status</div>
                       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                         {Object.entries(qaStatusCounts).map(([status, count]) => (
-                          <span key={status} style={{ fontSize: '10px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", padding: '2px 6px', background: 'var(--qa-surface)', borderRadius: '4px', border: `1px solid ${C.border}` }}>{status}: {count}</span>
+                          <span key={status} style={{ fontSize: '10px', color: C.textMid, fontFamily: "var(--font-body, 'Manrope', sans-serif)", padding: '2px 6px', background: 'var(--qa-surface)', borderRadius: '4px', border: `1px solid ${C.border}` }}>{status}: {count}</span>
                         ))}
                       </div>
                     </div>
@@ -597,20 +597,20 @@ function HRReportsView() {
           {/* Bug breakdown */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <GCard style={{ padding: '20px' }}>
-              <div style={{ fontSize: '13px', fontWeight: '700', color: C.text, fontFamily: "'JetBrains Mono',monospace", marginBottom: '14px' }}>Bugs by Status</div>
+              <div style={{ fontSize: '13px', fontWeight: '700', color: C.text, fontFamily: "var(--font-body, 'Manrope', sans-serif)", marginBottom: '14px' }}>Bugs by Status</div>
               {Object.entries(reportData.bugsByStatus).map(([s, count]: any) => (
                 <div key={s} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: `1px solid ${C.border}20` }}>
-                  <span style={{ fontSize: '12px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace" }}>{s}</span>
-                  <span style={{ fontSize: '12px', fontWeight: '700', color: C.text, fontFamily: "'JetBrains Mono',monospace" }}>{count}</span>
+                  <span style={{ fontSize: '12px', color: C.textMid, fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>{s}</span>
+                  <span style={{ fontSize: '12px', fontWeight: '700', color: C.text, fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>{count}</span>
                 </div>
               ))}
             </GCard>
             <GCard style={{ padding: '20px' }}>
-              <div style={{ fontSize: '13px', fontWeight: '700', color: C.text, fontFamily: "'JetBrains Mono',monospace", marginBottom: '14px' }}>Bugs by Priority</div>
+              <div style={{ fontSize: '13px', fontWeight: '700', color: C.text, fontFamily: "var(--font-body, 'Manrope', sans-serif)", marginBottom: '14px' }}>Bugs by Priority</div>
               {Object.entries(reportData.bugsByPriority).map(([p, count]: any) => (
                 <div key={p} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: `1px solid ${C.border}20` }}>
-                  <span style={{ fontSize: '12px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace" }}>{p}</span>
-                  <span style={{ fontSize: '12px', fontWeight: '700', color: C.text, fontFamily: "'JetBrains Mono',monospace" }}>{count}</span>
+                  <span style={{ fontSize: '12px', color: C.textMid, fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>{p}</span>
+                  <span style={{ fontSize: '12px', fontWeight: '700', color: C.text, fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>{count}</span>
                 </div>
               ))}
             </GCard>

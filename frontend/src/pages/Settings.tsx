@@ -95,11 +95,11 @@ function TeamManagement({ isAdmin }: { isAdmin: boolean }) {
       {/* QA Team */}
       <GCard style={{ padding: '20px', marginBottom: '20px' }} glow={C.accent}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <span style={{ fontSize: '13px', fontWeight: '700', color: C.text, fontFamily: "'JetBrains Mono',monospace" }}>QA Team</span>
+          <span style={{ fontSize: '13px', fontWeight: '700', color: C.text, fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>QA Team</span>
           <Btn sm icon="＋" onClick={() => setShowAddQA(true)}>Add QA User</Btn>
         </div>
         {loadingQA
-          ? <div style={{ color: C.textDim, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace" }}>Loading…</div>
+          ? <div style={{ color: C.textDim, fontSize: '12px', fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>Loading…</div>
           : <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {(qaUsers as any[]).map((u: any) => (
                 <div key={u.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--qa-input)', borderRadius: '8px', border: `1px solid ${C.border}` }}>
@@ -108,8 +108,8 @@ function TeamManagement({ isAdmin }: { isAdmin: boolean }) {
                       {u.name[0]}
                     </div>
                     <div>
-                      <div style={{ fontSize: '12px', fontWeight: '600', color: C.text, fontFamily: "'JetBrains Mono',monospace" }}>{u.name}</div>
-                      <div style={{ fontSize: '10px', color: C.textDim, fontFamily: "'JetBrains Mono',monospace" }}>@{u.username}</div>
+                      <div style={{ fontSize: '12px', fontWeight: '600', color: C.text, fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>{u.name}</div>
+                      <div style={{ fontSize: '10px', color: C.textDim, fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>@{u.username}</div>
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -137,13 +137,13 @@ function TeamManagement({ isAdmin }: { isAdmin: boolean }) {
       {isAdmin && (
         <GCard style={{ padding: '20px' }} glow='#34d399'>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <span style={{ fontSize: '13px', fontWeight: '700', color: C.text, fontFamily: "'JetBrains Mono',monospace" }}>HR Team</span>
+            <span style={{ fontSize: '13px', fontWeight: '700', color: C.text, fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>HR Team</span>
             <Btn sm icon="＋" v="green" onClick={() => setShowAddHR(true)}>Add HR User</Btn>
           </div>
           {loadingHR
-            ? <div style={{ color: C.textDim, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace" }}>Loading…</div>
+            ? <div style={{ color: C.textDim, fontSize: '12px', fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>Loading…</div>
             : <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {(hrUsers as any[]).length === 0 && <div style={{ color: C.textMid, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace" }}>No HR users yet. Add one.</div>}
+                {(hrUsers as any[]).length === 0 && <div style={{ color: C.textMid, fontSize: '12px', fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>No HR users yet. Add one.</div>}
                 {(hrUsers as any[]).map((u: any) => (
                   <div key={u.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--qa-input)', borderRadius: '8px', border: `1px solid ${C.border}` }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -151,8 +151,8 @@ function TeamManagement({ isAdmin }: { isAdmin: boolean }) {
                         {u.name[0]}
                       </div>
                       <div>
-                        <div style={{ fontSize: '12px', fontWeight: '600', color: C.text, fontFamily: "'JetBrains Mono',monospace" }}>{u.name}</div>
-                        <div style={{ fontSize: '10px', color: C.textDim, fontFamily: "'JetBrains Mono',monospace" }}>{u.email}</div>
+                        <div style={{ fontSize: '12px', fontWeight: '600', color: C.text, fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>{u.name}</div>
+                        <div style={{ fontSize: '10px', color: C.textDim, fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>{u.email}</div>
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -194,8 +194,8 @@ function TeamManagement({ isAdmin }: { isAdmin: boolean }) {
           )}
           {!isAdmin && (
             <div style={{ marginBottom: '14px' }}>
-              <div style={{ fontSize: '10px', fontWeight: '700', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '.07em' }}>Role</div>
-              <div style={{ fontSize: '12px', color: C.textDim, fontFamily: "'JetBrains Mono',monospace", padding: '10px 12px', background: 'var(--qa-input)', borderRadius: '8px', border: `1px solid ${C.border}` }}>{editUser.role} <span style={{ color: C.textMid, fontSize: '10px' }}>(only admin can change roles)</span></div>
+              <div style={{ fontSize: '10px', fontWeight: '700', color: C.textMid, fontFamily: "var(--font-body, 'Manrope', sans-serif)", marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '.07em' }}>Role</div>
+              <div style={{ fontSize: '12px', color: C.textDim, fontFamily: "var(--font-body, 'Manrope', sans-serif)", padding: '10px 12px', background: 'var(--qa-input)', borderRadius: '8px', border: `1px solid ${C.border}` }}>{editUser.role} <span style={{ color: C.textMid, fontSize: '10px' }}>(only admin can change roles)</span></div>
             </div>
           )}
           <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
@@ -271,14 +271,14 @@ function MembersManagement() {
   const chipStyle = (color: string): React.CSSProperties => ({
     display: 'inline-flex', alignItems: 'center', gap: '5px',
     padding: '3px 10px 3px 10px', borderRadius: '999px', fontSize: '11px',
-    fontFamily: "'JetBrains Mono',monospace", fontWeight: 600,
+    fontFamily: "var(--font-body, 'Manrope', sans-serif)", fontWeight: 600,
     background: `${color}18`, color, border: `1px solid ${color}35`, margin: '3px',
   });
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
-        <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--qa-text)', fontFamily: "'JetBrains Mono',monospace" }}>
+        <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--qa-text)', fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>
           Global Members — {(members as any[]).length} total
         </div>
         <Btn sm icon="＋" onClick={() => setShowAdd(true)}>Add Member</Btn>
@@ -286,10 +286,10 @@ function MembersManagement() {
 
       {/* Developers section */}
       <GCard style={{ padding: '18px 20px', marginBottom: '14px' }}>
-        <div style={{ fontSize: '11px', fontWeight: 700, color: C.accent, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: '12px' }}>Developers ({developers.length})</div>
+        <div style={{ fontSize: '11px', fontWeight: 700, color: C.accent, fontFamily: "var(--font-body, 'Manrope', sans-serif)", letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: '12px' }}>Developers ({developers.length})</div>
         {Object.entries(byDept).sort().map(([dept, devs]) => (
           <div key={dept} style={{ marginBottom: '10px' }}>
-            <div style={{ fontSize: '10px', color: 'var(--qa-text-mid)', fontFamily: "'JetBrains Mono',monospace", fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '4px' }}>{dept}</div>
+            <div style={{ fontSize: '10px', color: 'var(--qa-text-mid)', fontFamily: "var(--font-body, 'Manrope', sans-serif)", fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '4px' }}>{dept}</div>
             <div style={{ display: 'flex', flexWrap: 'wrap' }}>
               {devs.map((m: any) => (
                 <span key={m.id} style={chipStyle(C.accent)}>
@@ -304,7 +304,7 @@ function MembersManagement() {
 
       {/* BAs section */}
       <GCard style={{ padding: '18px 20px' }}>
-        <div style={{ fontSize: '11px', fontWeight: 700, color: C.yellow, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: '12px' }}>Business Analysts ({bas.length})</div>
+        <div style={{ fontSize: '11px', fontWeight: 700, color: C.yellow, fontFamily: "var(--font-body, 'Manrope', sans-serif)", letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: '12px' }}>Business Analysts ({bas.length})</div>
         <div style={{ display: 'flex', flexWrap: 'wrap' }}>
           {bas.map((m: any) => (
             <span key={m.id} style={chipStyle(C.yellow)}>
@@ -369,8 +369,8 @@ export function SettingsPage() {
   return (
     <div style={{ padding: '28px 36px 48px', width: '100%' }} className="fu">
       <div style={{ marginBottom: '22px' }}>
-        <h1 style={{ margin: '0 0 6px', fontSize: '24px', fontWeight: 600, color: 'var(--qa-text)', fontFamily: "'JetBrains Mono',monospace", letterSpacing: '-0.02em' }}>Settings</h1>
-        <div style={{ fontSize: '12px', color: 'var(--qa-text-mid)', fontFamily: "'JetBrains Mono',monospace" }}>Manage dropdown chips and status values · Admin & QA Lead only</div>
+        <h1 style={{ margin: '0 0 6px', fontSize: '24px', fontWeight: 700, color: 'var(--qa-text)', fontFamily: "var(--font-heading, 'Montserrat', sans-serif)", letterSpacing: '-0.02em' }}>Settings</h1>
+        <div style={{ fontSize: '12px', color: 'var(--qa-text-mid)', fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>Manage dropdown chips and status values · Admin & QA Lead only</div>
       </div>
 
       {/* Pill-style tab switcher */}
@@ -395,7 +395,7 @@ export function SettingsPage() {
                 borderRadius: '7px',
                 fontSize: '12px',
                 fontWeight: active ? 600 : 500,
-                fontFamily: "'JetBrains Mono',monospace",
+                fontFamily: "var(--font-body, 'Manrope', sans-serif)",
                 cursor: 'pointer',
                 background: active ? 'var(--qa-card)' : 'transparent',
                 border: 'none',
@@ -421,14 +421,14 @@ export function SettingsPage() {
             padding: '18px 20px',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--qa-text)', fontFamily: "'JetBrains Mono',monospace" }}>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--qa-text)', fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>
                 {SETTING_TABS.find(t => t.id === tab)?.l} Values
               </span>
               <Btn sm icon="＋" onClick={() => setShowAdd(true)}>Add Value</Btn>
             </div>
 
             {isLoading
-              ? <div style={{ color: 'var(--qa-text-mid)', fontSize: '12px', fontFamily: "'JetBrains Mono',monospace" }}>Loading…</div>
+              ? <div style={{ color: 'var(--qa-text-mid)', fontSize: '12px', fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>Loading…</div>
               : <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   {currentValues.map((item: any) => (
                     <div key={item.id} style={{
@@ -439,7 +439,7 @@ export function SettingsPage() {
                       padding: '4px 6px 4px 10px',
                     }}>
                       <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: item.color, display: 'inline-block' }} />
-                      <span style={{ fontSize: '11.5px', color: item.color, fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>{item.value}</span>
+                      <span style={{ fontSize: '11.5px', color: item.color, fontFamily: "var(--font-body, 'Manrope', sans-serif)", fontWeight: 600 }}>{item.value}</span>
                       <button onClick={() => deleteMut.mutate(item.id)}
                         onMouseEnter={e => { e.currentTarget.style.opacity = '1'; }}
                         onMouseLeave={e => { e.currentTarget.style.opacity = '0.6'; }}
@@ -451,7 +451,7 @@ export function SettingsPage() {
                         }}>×</button>
                     </div>
                   ))}
-                  {currentValues.length === 0 && <div style={{ color: 'var(--qa-text-mid)', fontSize: '12px', fontFamily: "'JetBrains Mono',monospace" }}>No values yet. Add one.</div>}
+                  {currentValues.length === 0 && <div style={{ color: 'var(--qa-text-mid)', fontSize: '12px', fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>No values yet. Add one.</div>}
                 </div>
             }
           </div>
@@ -459,10 +459,10 @@ export function SettingsPage() {
           {showAdd && (
             <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }} onClick={e => e.target === e.currentTarget && setShowAdd(false)}>
               <GCard style={{ padding: '24px', width: '100%', maxWidth: '400px' }} glow={C.accent}>
-                <div style={{ fontSize: '14px', fontWeight: '700', color: C.text, fontFamily: "'JetBrains Mono',monospace", marginBottom: '20px' }}>Add Value to {SETTING_TABS.find(t => t.id === tab)?.l}</div>
+                <div style={{ fontSize: '14px', fontWeight: '700', color: C.text, fontFamily: "var(--font-body, 'Manrope', sans-serif)", marginBottom: '20px' }}>Add Value to {SETTING_TABS.find(t => t.id === tab)?.l}</div>
                 <Inp label="Value" ph="e.g. Pending Review" value={newValue} onChange={setNewValue} req />
                 <div style={{ marginBottom: '14px' }}>
-                  <label style={{ display: 'block', fontSize: '10px', fontWeight: '700', color: C.textMid, marginBottom: '8px', fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.07em', textTransform: 'uppercase' }}>Colour</label>
+                  <label style={{ display: 'block', fontSize: '10px', fontWeight: '700', color: C.textMid, marginBottom: '8px', fontFamily: "var(--font-body, 'Manrope', sans-serif)", letterSpacing: '.07em', textTransform: 'uppercase' }}>Colour</label>
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     {PRESET_COLORS.map(c => (
                       <div key={c} onClick={() => setNewColor(c)} style={{ width: '28px', height: '28px', borderRadius: '6px', background: c, cursor: 'pointer', border: newColor === c ? `3px solid ${C.text}` : '3px solid transparent', transition: 'border .15s' }} />

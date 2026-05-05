@@ -105,7 +105,7 @@ export const TypeSearch = ({
               cursor: 'pointer', borderBottom: '1px solid var(--qa-border-lt)',
               transition: 'background 0.1s',
             }}
-            onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'rgba(124,106,247,0.06)'}
+            onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'rgba(59,130,246,0.06)'}
             onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = 'none'}>
               {name}
             </div>
@@ -117,7 +117,7 @@ export const TypeSearch = ({
                 fontFamily: "'JetBrains Mono', monospace", color: 'var(--qa-accent)',
                 cursor: 'pointer', borderTop: '1px solid var(--qa-border-lt)',
               }}
-              onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'rgba(124,106,247,0.06)'}
+              onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'rgba(59,130,246,0.06)'}
               onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = 'none'}>
               + Add "{query}"
             </div>
