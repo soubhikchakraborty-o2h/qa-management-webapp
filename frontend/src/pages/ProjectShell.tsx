@@ -1670,8 +1670,8 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 20px' }}>
                   {[
-                    { l: 'Start Date', v: project.start_date ? new Date(project.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—' },
-                    { l: 'End Date', v: project.end_date ? new Date(project.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—' },
+                    { l: 'Start Date', v: project.start_date ? new Date(project.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—' },
+                    { l: 'End Date', v: project.end_date ? new Date(project.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—' },
                     { l: 'Business Analyst', v: project.ba_name || '—' },
                     { l: 'Designer', v: project.designer_name || '—' },
                     { l: 'Project Type', v: project.project_type ? project.project_type.charAt(0).toUpperCase() + project.project_type.slice(1) : '—' },
