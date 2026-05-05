@@ -1,5 +1,5 @@
 # QAMS — Bug & Feature Tracker
-Last Updated: 2026-05-03
+Last Updated: 2026-05-05
 
 ---
 
@@ -14,6 +14,7 @@ Last Updated: 2026-05-03
 | F5 | Project header — remove Owner tag, show QA names list | 🟢 Fixed — meta row now shows "Soubhik & Bhargav" style names, removed Owner label + QA count |
 | F6 | Actual Result field on Test Cases when result is Fail | 🟢 Fixed — red textarea appears on Fail, auto-focuses, debounced save, clears on non-Fail, included in export |
 | F7 | Developer login — Continue button disabled until valid name selected | 🟢 Fixed — nameValid state, disabled + tooltip when name not in approved list |
+| F8 | My Projects / All Projects tab for admin and qa_lead | 🟢 Fixed — tab switcher above search; "mine" filters by created_by, "all" shows other QAs' projects as read-only; New Project hidden on All tab; backend now returns all projects for qa_lead too |
 
 ---
 
@@ -39,7 +40,7 @@ Last Updated: 2026-05-03
 | 16 | Developer name added to one bug only — not synced to project roster or other fields | 🟢 Fixed — rosterAddMut called for both developed_by + assignee on every bug save |
 | 17 | Some Kanban bug cards don't open the specific bug on click | 🟢 Fixed — kanban click sets bugView+expandedBug and scrolls to bug-row-{id} |
 | 18 | HR Projects page — "active" status tag is lowercase | 🟢 Fixed — status chip text capitalized |
-| 19 | All icons too small (bug, tick, search etc) — need to be larger | 🔴 Open |
+| 19 | All icons too small (bug, tick, search etc) — need to be larger | 🟢 Fixed — replaced emoji icons with lucide-react SVGs across Projects, ProjectShell, layout sidebar, HRDashboard, and ui/index; DevIcon updated to clean code chevrons; Eye/EyeOff for password toggle; Trash2 for all deletes; Bug for bug count; ChevronLeft/Right for nav arrows; Calendar for dates; User for QA label; Link/FileText for resources/docs |
 | 20 | All exports need dropdown: PDF, CSV, XLSX, DOCX, ZIP where applicable | 🔴 Open |
 | 21 | Remove agent/manual distinction from test cases and bugs — unnecessary | 🟢 Fixed — filter removed, is_auto_generated badge removed |
 | 22 | Import preview table header not opaque — text overlaps on scroll | 🟢 Fixed — sticky + background applied to import preview headers |
@@ -52,6 +53,7 @@ Last Updated: 2026-05-03
 | 29 | Bug filter — can't replace same-field filter without clearing first; assignee text input inconsistent | 🟢 Fixed — assignee is now a select from roster (exact match); pills show active filters with individual × dismiss; "Clear All" resets all; count shows "X of Y bugs" |
 | 30 | Delete operations slow — no indexes on FK columns, sequential awaits, O(n) re-sequencing after each delete | 🟢 Fixed — 9 DB indexes added; project delete parallelized (5 concurrent); TC/bug re-sequencing removed; 6 mutations get optimistic UI (instant removal) |
 | 31 | Project card shows 0 for test case count (✓) and bug count (🪲) even when data exists | 🟢 Fixed — backend now runs 3 parallel count queries per request and injects test_case_count, bug_count, pass_count onto every project; pass rate bar also now correct |
+| 32 | Delete confirmation modal stays open during network delay | 🟢 Fixed — setConfirmDelete(null) now called immediately in handleDeleteConfirm before mutation fires |
 
 ---
 

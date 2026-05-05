@@ -1,4 +1,5 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, ReactNode } from 'react';
+import { Settings, LogOut } from 'lucide-react';
 import { C } from '../../lib/constants';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
@@ -9,7 +10,7 @@ const RED = '#ef4444';
 
 // ── NavItem ───────────────────────────────────────────────────
 function NavItem({ label, icon, active, onClick, indent, collapsed }: {
-  label: string; icon: string; active: boolean; onClick: () => void; indent?: boolean; collapsed?: boolean;
+  label: string; icon: ReactNode; active: boolean; onClick: () => void; indent?: boolean; collapsed?: boolean;
 }) {
   const [hov, setHov] = useState(false);
   return (
@@ -233,7 +234,7 @@ export function Sidebar({ page, setPage, user, insideProject, onBackToProjects, 
             <div style={{ margin: '10px 2px', borderTop: '1px solid rgba(255,255,255,0.06)' }} />
           </>}
           {['admin', 'qa_lead'].includes(user.role) && (
-            <NavItem label="Settings" icon="⚙" active={page === 'settings'} onClick={() => { setPage('settings'); if (insideProject) onExitProject?.(); }} />
+            <NavItem label="Settings" icon={<Settings size={15} />} active={page === 'settings'} onClick={() => { setPage('settings'); if (insideProject) onExitProject?.(); }} />
           )}
           {user.role === 'developer' && onSwitchQA && (
             <NavItem label="Switch QA" icon="⇄" active={false} onClick={onSwitchQA} />
@@ -319,7 +320,7 @@ export function Sidebar({ page, setPage, user, insideProject, onBackToProjects, 
                 transition: 'background 0.15s, color 0.15s',
               }}
             >
-              <span style={{ fontSize: '13px', flexShrink: 0, width: '18px', textAlign: 'center' }}>→</span>
+              <span style={{ flexShrink: 0, width: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><LogOut size={15} /></span>
               Sign Out
             </div>
           )}

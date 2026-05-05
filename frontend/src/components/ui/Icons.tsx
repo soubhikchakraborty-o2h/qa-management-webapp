@@ -22,11 +22,10 @@ export const BeetleIcon = ({ size = 48, color }: { size?: number; color: string 
   </svg>
 );
 
-export const DevIcon = ({ size = 48, color }: { size?: number; color: string }) => (
-  <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
-    <path d="M19 14L9 24L19 34" stroke={color} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M29 14L39 24L29 34" stroke={color} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M27 9L21 39" stroke={color} strokeWidth="2.5" strokeLinecap="round" opacity=".6"/>
+export const DevIcon = ({ size = 28, color = 'currentColor' }: { size?: number; color?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="16 18 22 12 16 6" />
+    <polyline points="8 6 2 12 8 18" />
   </svg>
 );
 

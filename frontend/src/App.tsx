@@ -40,6 +40,7 @@ function AppInner() {
   });
   // Team view: which QA's projects is the current user browsing (read-only)
   const [teamViewMember, setTeamViewMember] = useState<{ id: string; name: string } | null>(null);
+  const [tabReadOnly, setTabReadOnly] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
   // Redirect to app once logged in
@@ -83,6 +84,7 @@ function AppInner() {
       setProject(null); setSPage('projects'); return;
     }
     setProject(p); setSPage('overview');
+    setTabReadOnly(!!p._tabReadOnly);
     if (!user) return; // developer mode — preserve filterQA
     setFilterQA(null);
   };
@@ -90,6 +92,7 @@ function AppInner() {
   const closeProject = () => {
     setProject(null);
     setSPage('projects');
+    setTabReadOnly(false);
     if (!user) setFilterQA(localStorage.getItem('qa_selected_qa') || null);
     // Pop the history entry we pushed when opening so browser history stays clean
     if (window.history.state?.qaProject) {
@@ -102,6 +105,7 @@ function AppInner() {
 
   const exitProjectOnly = () => {
     setProject(null);
+    setTabReadOnly(false);
     if (window.history.state?.qaProject) {
       skipPopRef.current = true;
       window.history.back();
@@ -224,7 +228,7 @@ function AppInner() {
               user={effectiveUser}
               page={sPage}
               setPage={setSPage}
-              readOnly={!!teamViewMember}
+              readOnly={!!teamViewMember || tabReadOnly}
               onReassignComplete={handleReassignComplete}
             />
           )}

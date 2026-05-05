@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 import { C, STATUS_COLORS, QA_STATUS_COLORS, STATUS_LABELS, APP_TYPE_ICON, PRIORITY_COLORS, LABEL_COLORS, PLATFORM_COLORS } from '../lib/constants';
 import { getTestCases, createTestCase, updateTestCase, deleteTestCase, getBugs, createBug, updateBug, deleteBug, addComment, getComments, getAutomation, updateScript, deleteAutomationScript, uploadScript, getDocuments, addDocument, deleteDocument, updateProject, getSettings, getTeam, reassignProject, addAdditionalQA, getRoster, updateRoster, addBugResource, deleteBugResource, bulkImportTestCases, bulkImportBugs } from '../lib/api';
 import { GCard, Chip, Btn, Modal, Inp, Sel, ConfirmDeleteModal } from '../components/ui/index';
+import { Link, FileText, User, Calendar, ExternalLink, Trash2, ChevronLeft } from 'lucide-react';
 import { OverheadTabs } from '../components/layout/index';
 
 // ── DeveloperComboInput ───────────────────────────────────────
@@ -281,7 +282,7 @@ function BugExpandedRow({ bug, user, onClose, projectId, readOnly, roster, proje
                         <img src={r.url} alt={r.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', padding: '4px', textAlign: 'center' }}>
-                          <span style={{ fontSize: '20px' }}>🔗</span>
+                          <Link size={20} />
                           <span style={{ fontSize: '8px', color: C.textDim, fontFamily: "'JetBrains Mono',monospace", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '54px', display: 'block' }}>{r.label || 'Link'}</span>
                         </div>
                       )}
@@ -305,7 +306,7 @@ function BugExpandedRow({ bug, user, onClose, projectId, readOnly, roster, proje
           <div style={{ display: 'flex', gap: '8px' }}>
             {!readOnly && <Btn sm onClick={save} disabled={mut.isPending}>Save Changes</Btn>}
             <Btn sm v="ghost" onClick={onClose}>{readOnly ? 'Close' : 'Discard'}</Btn>
-            <Btn sm v="ghost" onClick={() => exportSingleBugPDF(bug, projectName, projectCode)}>📄 PDF</Btn>
+            <Btn sm v="ghost" onClick={() => exportSingleBugPDF(bug, projectName, projectCode)}><FileText size={13} style={{ marginRight: '4px', verticalAlign: 'middle' }} />PDF</Btn>
           </div>
         </div>
 
@@ -318,7 +319,7 @@ function BugExpandedRow({ bug, user, onClose, projectId, readOnly, roster, proje
                 <img src={proofResource.url} alt={proofResource.label} style={{ maxWidth: '80vw', maxHeight: '80vh', borderRadius: '10px', display: 'block' }} />
               ) : (
                 <div style={{ textAlign: 'center', padding: '40px 60px' }}>
-                  <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔗</div>
+                  <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'center' }}><Link size={48} /></div>
                   <div style={{ fontSize: '13px', color: C.text, fontFamily: "'JetBrains Mono',monospace", marginBottom: '20px', wordBreak: 'break-all' }}>{proofResource.label || proofResource.url}</div>
                   <a href={proofResource.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', padding: '10px 28px', background: C.accent, color: '#fff', borderRadius: '9px', textDecoration: 'none', fontFamily: "'JetBrains Mono',monospace", fontSize: '13px', fontWeight: '700' }}>Open Link →</a>
                 </div>
@@ -1064,6 +1065,7 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
   const handleDeleteConfirm = () => {
     if (!confirmDelete) return;
     const { type, id } = confirmDelete;
+    setConfirmDelete(null); // close modal immediately — don't wait for network
     if (type === 'tc') deleteTCMut.mutate(id);
     else if (type === 'bug') deleteBugMut.mutate(id);
     else if (type === 'script') deleteScriptMut.mutate(id);
@@ -1337,7 +1339,7 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
         <button onClick={onBack}
           onMouseEnter={e => { e.currentTarget.style.color = 'var(--qa-accent)'; }}
           onMouseLeave={e => { e.currentTarget.style.color = 'var(--qa-text-mid)'; }}
-          style={{ background: 'none', border: 'none', color: 'var(--qa-text-mid)', cursor: 'pointer', fontFamily: "'JetBrains Mono',monospace", fontSize: '11px', padding: '0', marginBottom: '14px', transition: 'color .15s' }}>← All projects</button>
+          style={{ background: 'none', border: 'none', color: 'var(--qa-text-mid)', cursor: 'pointer', fontFamily: "'JetBrains Mono',monospace", fontSize: '11px', padding: '0', marginBottom: '14px', transition: 'color .15s', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><ChevronLeft size={14} />All projects</button>
 
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
           {/* Left: title + inline chips */}
@@ -1420,11 +1422,11 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                 else if (allNames.length === 2) qaLabel = `${allNames[0]} & ${allNames[1]}`;
                 else if (allNames.length === 3) qaLabel = `${allNames[0]}, ${allNames[1]} & ${allNames[2]}`;
                 else qaLabel = `${allNames[0]}, ${allNames[1]} & +${allNames.length - 2} more`;
-                return <span>👤 {qaLabel}</span>;
+                return <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><User size={12} />{qaLabel}</span>;
               })()}
               {project.updated_at && <>
                 <span style={{ opacity: 0.4 }}>·</span>
-                <span>📅 Updated {new Date(project.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Calendar size={12} />Updated {new Date(project.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</span>
               </>}
             </div>
           </div>
@@ -1536,7 +1538,7 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
 
             <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
               {project.figma_url ? (
-                <a href={project.figma_url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 18px', background: `${C.purple}18`, border: `1px solid ${C.purple}35`, borderRadius: '8px', color: C.purple, textDecoration: 'none', fontFamily: "'JetBrains Mono',monospace", fontSize: '12px', fontWeight: '600' }}>🎨 Figma →</a>
+                <a href={project.figma_url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 18px', background: `${C.purple}18`, border: `1px solid ${C.purple}35`, borderRadius: '8px', color: C.purple, textDecoration: 'none', fontFamily: "'JetBrains Mono',monospace", fontSize: '12px', fontWeight: '600' }}><ExternalLink size={14} /> Figma</a>
               ) : canEdit ? (
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <input value={figmaInputVal} onChange={e => setFigmaInputVal(e.target.value)} placeholder="Figma URL…" style={{ width: '200px', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '8px 12px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }} />
@@ -1546,7 +1548,7 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                 <span style={{ fontSize: '12px', color: C.textDim, fontFamily: "'JetBrains Mono',monospace", padding: '9px 0' }}>No Figma linked</span>
               )}
               {project.frd_url ? (
-                <a href={project.frd_url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 18px', background: `${C.blue}18`, border: `1px solid ${C.blue}35`, borderRadius: '8px', color: C.blue, textDecoration: 'none', fontFamily: "'JetBrains Mono',monospace", fontSize: '12px', fontWeight: '600' }}>📄 FRD →</a>
+                <a href={project.frd_url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 18px', background: `${C.blue}18`, border: `1px solid ${C.blue}35`, borderRadius: '8px', color: C.blue, textDecoration: 'none', fontFamily: "'JetBrains Mono',monospace", fontSize: '12px', fontWeight: '600' }}><FileText size={14} /> FRD</a>
               ) : canEdit ? (
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <input value={frdInputVal} onChange={e => setFrdInputVal(e.target.value)} placeholder="FRD URL…" style={{ width: '200px', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '8px 12px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }} />
@@ -1575,7 +1577,7 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                   <Btn sm v="ghost" onClick={() => setShowExportMenu(v => !v)}>Export ▾</Btn>
                   {showExportMenu && (
                     <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 50, background: 'var(--qa-modal)', border: `1px solid ${C.border}`, borderRadius: '10px', padding: '6px', minWidth: '140px' }}>
-                      {[{ label: '📄 CSV', fmt: 'csv' as const }, { label: '📊 Excel (.xlsx)', fmt: 'xlsx' as const }].map(opt => (
+                      {[{ label: 'CSV', fmt: 'csv' as const }, { label: 'Excel (.xlsx)', fmt: 'xlsx' as const }].map(opt => (
                         <div key={opt.fmt} onClick={() => exportTestCases(opt.fmt)}
                           style={{ padding: '8px 14px', fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", cursor: 'pointer', color: C.text, borderRadius: '6px' }}
                           onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)'; }}
@@ -1657,7 +1659,7 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 <span style={{ fontSize: '11px', color: isOpen ? C.accent : C.textDim, fontFamily: "'JetBrains Mono',monospace" }}>{isOpen ? '▲' : '▼'}</span>
                                 {canDelete && (
-                                  <button onClick={e => { e.stopPropagation(); setConfirmDelete({ type: 'tc', id: t.id, label: t.test_case_id }); }} title="Delete" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontSize: '12px', padding: '2px 4px', borderRadius: '4px', opacity: 0.65, lineHeight: 1 }}>🗑</button>
+                                  <button onClick={e => { e.stopPropagation(); setConfirmDelete({ type: 'tc', id: t.id, label: t.test_case_id }); }} title="Delete" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '2px 4px', borderRadius: '4px', opacity: 0.65, lineHeight: 1, display: 'flex', alignItems: 'center' }}><Trash2 size={14} /></button>
                                 )}
                               </div>
                             </td>
@@ -1767,7 +1769,7 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                     <Btn sm v="ghost" onClick={() => setShowBugExportMenu(v => !v)}>Export ▾</Btn>
                     {showBugExportMenu && (
                       <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 50, background: 'var(--qa-modal)', border: `1px solid ${C.border}`, borderRadius: '10px', padding: '6px', minWidth: '140px' }}>
-                        {[{ label: '📄 CSV', fmt: 'csv' as const }, { label: '📊 Excel (.xlsx)', fmt: 'xlsx' as const }].map(opt => (
+                        {[{ label: 'CSV', fmt: 'csv' as const }, { label: 'Excel (.xlsx)', fmt: 'xlsx' as const }].map(opt => (
                           <div key={opt.fmt} onClick={() => exportBugs(opt.fmt)}
                             style={{ padding: '8px 14px', fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", cursor: 'pointer', color: C.text, borderRadius: '6px' }}
                             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)'; }}
@@ -1971,7 +1973,7 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 <span style={{ fontSize: '11px', color: isOpen ? C.accent : C.textDim, fontFamily: "'JetBrains Mono',monospace" }}>{isOpen ? '▲' : '▼'}</span>
                                 {canDelete && (
-                                  <button onClick={e => { e.stopPropagation(); setConfirmDelete({ type: 'bug', id: b.id, label: `#${b.sl_no} ${b.module}` }); }} title="Delete" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontSize: '12px', padding: '2px 4px', borderRadius: '4px', opacity: 0.65, lineHeight: 1 }}>🗑</button>
+                                  <button onClick={e => { e.stopPropagation(); setConfirmDelete({ type: 'bug', id: b.id, label: `#${b.sl_no} ${b.module}` }); }} title="Delete" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '2px 4px', borderRadius: '4px', opacity: 0.65, lineHeight: 1, display: 'flex', alignItems: 'center' }}><Trash2 size={14} /></button>
                                 )}
                               </div>
                             </td>
@@ -2064,7 +2066,7 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                   <div style={{ fontSize: '11px', color: C.textDim, marginBottom: '10px' }}>{s.type === 'playwright' ? 'Playwright test script' : 'Selenium mobile script'}</div>
                   {s.file_name ? (
                     <div style={{ fontSize: '10px', color: C.green, fontFamily: "'JetBrains Mono',monospace", marginBottom: '14px', padding: '7px 10px', background: `${C.green}10`, borderRadius: '6px', border: `1px solid ${C.green}20` }}>
-                      <div>📄 {s.file_name}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><FileText size={12} />{s.file_name}</div>
                       {s.uploaded_at && <div style={{ color: C.textDim, marginTop: '2px' }}>Uploaded {new Date(s.uploaded_at).toLocaleDateString()}</div>}
                     </div>
                   ) : (
@@ -2103,7 +2105,7 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
 
             {(documents as any[]).length === 0 ? (
               <div style={{ textAlign: 'center', padding: '80px 20px', fontFamily: "'JetBrains Mono',monospace" }}>
-                <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: `${C.blue}10`, border: `1px solid ${C.blue}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', margin: '0 auto 16px' }}>📄</div>
+                <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: `${C.blue}10`, border: `1px solid ${C.blue}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}><FileText size={22} color={C.blue} /></div>
                 <div style={{ color: C.text, fontWeight: '600', marginBottom: '6px', fontSize: '14px' }}>No documents yet</div>
                 <div style={{ fontSize: '12px', color: 'var(--qa-text-faint)', maxWidth: '260px', margin: '0 auto 20px', lineHeight: 1.6 }}>Add Figma designs, FRD docs, or any reference links for this project.</div>
                 {canEdit && <button onClick={() => setAddDoc(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 20px', borderRadius: '8px', background: C.blue, color: '#fff', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: '700', fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.02em' }}>＋ Add Document</button>}
@@ -2111,7 +2113,7 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
             ) : (
               ['figma','frd','additional'].map(cat => {
                 const catDocs = documents.filter((d: any) => d.doc_category === cat);
-                const catLabel: Record<string, string> = { figma: '🎨 Figma', frd: '📄 FRD', additional: '📁 Additional Documents' };
+                const catLabel: Record<string, string> = { figma: 'Figma', frd: 'FRD', additional: 'Additional Documents' };
                 return (
                   <div key={cat} style={{ marginBottom: '20px' }}>
                     <div style={{ fontSize: '10px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: '8px' }}>{catLabel[cat]}</div>
@@ -2120,7 +2122,7 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                       : catDocs.map((d: any) => (
                         <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'rgba(255,255,255,.02)', border: `1px solid ${C.border}`, borderRadius: '10px', marginBottom: '6px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <span style={{ fontSize: '16px' }}>{d.type === 'link' ? '🔗' : '📑'}</span>
+                            <span style={{ display: 'flex', alignItems: 'center' }}>{d.type === 'link' ? <Link size={16} /> : <FileText size={16} />}</span>
                             <span style={{ fontSize: '13px', color: C.text }}>{d.label}</span>
                             <Chip text={d.type} color={d.type === 'link' ? C.blue : C.yellow} sm />
                           </div>

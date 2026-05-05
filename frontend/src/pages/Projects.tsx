@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Trash2, Bug as BugIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { C, STATUS_COLORS, STATUS_LABELS, APP_TYPE_ICON, PRIORITY_COLORS } from '../lib/constants';
@@ -25,7 +26,7 @@ function StatusPill({ status }: { status: string }) {
   );
 }
 
-function ProjCard({ p, onClick, onDelete }: { p: any; onClick: () => void; onDelete?: () => void }) {
+function ProjCard({ p, onClick, onDelete, viewOnly }: { p: any; onClick: () => void; onDelete?: () => void; viewOnly?: boolean }) {
   const ownerName = p.created_by_user?.name || '';
   const passRate = p.test_case_count ? Math.round((p.pass_count / p.test_case_count) * 100) : 0;
   const [hov, setHov] = useState(false);
@@ -61,11 +62,14 @@ function ProjCard({ p, onClick, onDelete }: { p: any; onClick: () => void; onDel
       }} />
       {onDelete && (
         <button onClick={e => { e.stopPropagation(); onDelete(); }} title="Delete project"
-          style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '6px', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '11px', color: '#ef4444', zIndex: 1 }}>🗑</button>
+          style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '6px', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#ef4444', zIndex: 1 }}><Trash2 size={13} /></button>
+      )}
+      {viewOnly && !onDelete && (
+        <span style={{ position: 'absolute', top: '10px', right: '10px', fontSize: '9px', padding: '2px 6px', borderRadius: '4px', background: 'rgba(107,114,128,0.12)', color: '#9ca3af', border: '1px solid rgba(107,114,128,0.2)', fontFamily: "'JetBrains Mono',monospace" }}>View Only</span>
       )}
 
       {/* Top row: code badge + status */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', paddingRight: onDelete ? '30px' : '0' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', paddingRight: (onDelete || viewOnly) ? '30px' : '0' }}>
         <span style={{
           padding: '3px 8px',
           borderRadius: '6px',
@@ -132,7 +136,7 @@ function ProjCard({ p, onClick, onDelete }: { p: any; onClick: () => void; onDel
       {/* Bottom row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ display: 'flex', gap: '14px' }}>
-          <span style={{ fontSize: '11px', color: 'var(--qa-text-mid)', fontFamily: "'JetBrains Mono',monospace" }}>🪲 <strong style={{ color: 'var(--qa-text)', fontWeight: 700 }}>{p.bug_count || 0}</strong></span>
+          <span style={{ fontSize: '11px', color: 'var(--qa-text-mid)', fontFamily: "'JetBrains Mono',monospace", display: 'inline-flex', alignItems: 'center', gap: '4px' }}><BugIcon size={12} /> <strong style={{ color: 'var(--qa-text)', fontWeight: 700 }}>{p.bug_count || 0}</strong></span>
           <span style={{ fontSize: '11px', color: 'var(--qa-text-mid)', fontFamily: "'JetBrains Mono',monospace" }}>✓ <strong style={{ color: 'var(--qa-text)', fontWeight: 700 }}>{p.test_case_count || 0}</strong></span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -180,6 +184,9 @@ export function ProjectsPage({ user, onProjectClick, filterByQA, teamViewMember,
   const [mName, setMName] = useState(''); const [mUsername, setMUsername] = useState('');
   const [mPassword, setMPassword] = useState(''); const [mRole, setMRole] = useState('qa_engineer');
 
+  const isElevatedRole = user.role === 'admin' || user.role === 'qa_lead';
+  const [projectTab, setProjectTab] = useState<'mine' | 'all'>('mine');
+
   const hasSession = !!localStorage.getItem('qa_token');
   const isDevMode = user.role === 'developer';
   const isTeamView = !isDevMode && !!teamViewMember;
@@ -201,6 +208,13 @@ export function ProjectsPage({ user, onProjectClick, filterByQA, teamViewMember,
 
   // Dev mode returns an array; QA mode returns { projects, readOnly }
   const projects: any[] = isDevMode ? (rawData || []) : (rawData?.projects || []);
+
+  const displayedProjects = (() => {
+    if (isDevMode || isTeamView) return projects;
+    if (!isElevatedRole) return projects;
+    if (projectTab === 'mine') return projects.filter((p: any) => p.created_by === user.id);
+    return projects.filter((p: any) => p.created_by !== user.id);
+  })();
 
   const { data: team = [] } = useQuery({ queryKey: ['team'], queryFn: getTeam, enabled: hasSession });
 
@@ -225,7 +239,7 @@ export function ProjectsPage({ user, onProjectClick, filterByQA, teamViewMember,
   const resetProjectForm = () => { setPName(''); setPCode(''); setPType('web'); setPFigma(''); setPFrd(''); setPDesc(''); };
   const resetMemberForm = () => { setMName(''); setMUsername(''); setMPassword(''); setMRole('qa_engineer'); };
 
-  const filtered = projects.filter((p: any) => p.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = displayedProjects.filter((p: any) => p.name.toLowerCase().includes(search.toLowerCase()));
 
   const roleLabel: Record<string, string> = { admin: 'Admin + QA Engineer', qa_lead: 'QA Lead', qa_engineer: 'QA Engineer' };
 
@@ -245,12 +259,12 @@ export function ProjectsPage({ user, onProjectClick, filterByQA, teamViewMember,
           <div style={{ fontSize: '12px', color: 'var(--qa-text-mid)', fontFamily: "'JetBrains Mono',monospace", marginTop: '6px' }}>
             <span style={{ color: '#10b981' }}>{filtered.filter((p: any) => p.status === 'active').length} active</span>
             <span style={{ opacity: 0.4, margin: '0 6px' }}>·</span>
-            {filtered.length} total
+            {filtered.length} total{isElevatedRole && !isDevMode && !isTeamView && projectTab === 'all' ? ' (other QAs)' : ''}
           </div>
         </div>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginLeft: 'auto' }}>
           {!isDevMode && <Btn v="ghost" onClick={() => setShowTeam(true)} icon="👥">Team</Btn>}
-          {!isDevMode && !isTeamView && <Btn onClick={() => setShowAdd(true)} icon="＋">New Project</Btn>}
+          {!isDevMode && !isTeamView && (!isElevatedRole || projectTab === 'mine') && <Btn onClick={() => setShowAdd(true)} icon="＋">New Project</Btn>}
         </div>
       </div>
 
@@ -261,8 +275,29 @@ export function ProjectsPage({ user, onProjectClick, filterByQA, teamViewMember,
             👁 Read-only view — {teamViewMember!.name}'s projects
           </span>
           <button onClick={onClearTeamView} style={{ marginLeft: 'auto', background: 'none', border: `1px solid ${C.border}`, borderRadius: '6px', padding: '4px 10px', fontSize: '11px', color: C.textMid, cursor: 'pointer', fontFamily: "'JetBrains Mono',monospace" }}>
-            ← My Projects
+            <ChevronLeft size={14} style={{ verticalAlign: 'middle' }} /> My Projects
           </button>
+        </div>
+      )}
+
+      {/* Tab switcher — admin / qa_lead only */}
+      {isElevatedRole && !isDevMode && !isTeamView && (
+        <div style={{ display: 'flex', background: 'var(--qa-surface)', border: '1px solid var(--qa-border)', borderRadius: '10px', padding: '3px', gap: '3px', width: 'fit-content', marginBottom: '20px' }}>
+          {([{ value: 'mine', label: 'My Projects' }, { value: 'all', label: 'All Projects' }] as const).map(({ value, label }) => (
+            <button
+              key={value}
+              onClick={() => setProjectTab(value)}
+              style={{
+                padding: '7px 20px', borderRadius: '7px', border: 'none',
+                background: projectTab === value ? 'var(--qa-card)' : 'none',
+                color: projectTab === value ? 'var(--qa-text)' : 'var(--qa-text-mid)',
+                fontFamily: "'JetBrains Mono',monospace", fontSize: '12px',
+                fontWeight: projectTab === value ? 600 : 400,
+                cursor: 'pointer', transition: 'all 0.15s',
+                boxShadow: projectTab === value ? '0 1px 3px rgba(0,0,0,0.15)' : 'none',
+              }}
+            >{label}</button>
+          ))}
         </div>
       )}
 
@@ -324,8 +359,11 @@ export function ProjectsPage({ user, onProjectClick, filterByQA, teamViewMember,
                   <ProjCard
                     key={p.id}
                     p={p}
-                    onClick={() => onProjectClick(p)}
-                    onDelete={!isDevMode && !isTeamView && (user.role === 'admin' || user.role === 'qa_lead' || p.created_by === user.id)
+                    onClick={() => isElevatedRole && !isDevMode && !isTeamView && projectTab === 'all'
+                      ? onProjectClick({ ...p, _tabReadOnly: true })
+                      : onProjectClick(p)}
+                    viewOnly={isElevatedRole && !isDevMode && !isTeamView && projectTab === 'all'}
+                    onDelete={!isDevMode && !isTeamView && projectTab !== 'all' && (user.role === 'admin' || user.role === 'qa_lead' || p.created_by === user.id)
                       ? () => setConfirmDeleteProj({ id: p.id, name: p.name })
                       : undefined}
                   />
@@ -348,7 +386,7 @@ export function ProjectsPage({ user, onProjectClick, filterByQA, teamViewMember,
                   <div style={{ fontSize: '10px', color: C.accent, fontFamily: "'JetBrains Mono',monospace" }}>{roleLabel[m.role] || m.role}</div>
                 </div>
               </div>
-              <span style={{ fontSize: '12px', color: C.textDim }}>→</span>
+              <ChevronRight size={14} color={C.textDim} />
             </div>
           ))}
           {['admin', 'qa_lead'].includes(user.role) && (

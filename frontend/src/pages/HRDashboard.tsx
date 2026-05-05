@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { Calendar, LogOut } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
@@ -78,7 +79,7 @@ function HRSidebar({ tab, setTab, user, onSignOut, collapsed }: {
           ) : (
             <div onClick={() => setConfirming(true)} onMouseEnter={() => setHovSign(true)} onMouseLeave={() => setHovSign(false)}
               style={{ display: 'flex', alignItems: 'center', gap: '9px', padding: '8px 10px', margin: '6px 0', borderRadius: '7px', cursor: 'pointer', background: hovSign ? `${RED}10` : 'transparent', border: `1px solid ${hovSign ? RED + '30' : 'transparent'}`, color: hovSign ? RED : 'var(--qa-text-faint)', fontSize: '12px', fontFamily: "'JetBrains Mono', monospace", transition: 'all 0.15s' }}>
-              <span style={{ fontSize: '12px', flexShrink: 0 }}>→</span>Sign Out
+              <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}><LogOut size={14} /></span>Sign Out
             </div>
           )}
         </div>
@@ -167,7 +168,7 @@ function DateInput({ value, onChange, label }: { value: string; onChange: (v: st
           gap: '10px', minWidth: '140px', pointerEvents: 'none',
         }}>
           <span>{value ? toDisplay(value) : 'DD/MM/YYYY'}</span>
-          <span style={{ fontSize: '14px' }}>📅</span>
+          <Calendar size={14} />
         </div>
       </div>
     </div>

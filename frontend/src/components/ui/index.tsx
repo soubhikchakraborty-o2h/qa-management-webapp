@@ -1,4 +1,5 @@
 import { useState, ReactNode } from 'react';
+import { Eye, EyeOff, Trash2 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { C } from '../../lib/constants';
 
@@ -181,7 +182,7 @@ export function ConfirmDeleteModal({ message, onConfirm, onCancel, isPending }: 
   return createPortal(
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '20px' }}>
       <div className="fu" style={{ background: 'var(--qa-modal)', border: `1px solid ${C.border}`, borderRadius: '16px', padding: '32px 28px', maxWidth: '400px', width: '100%', textAlign: 'center', boxShadow: '0 25px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(239,68,68,0.15)' }}>
-        <div style={{ fontSize: '36px', marginBottom: '14px' }}>🗑</div>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '14px' }}><Trash2 size={36} color="#ef4444" /></div>
         <div style={{ fontSize: '14px', fontWeight: '700', color: C.text, fontFamily: "'JetBrains Mono',monospace", marginBottom: '8px' }}>Delete Confirmation</div>
         <div style={{ fontSize: '12px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", marginBottom: '24px', lineHeight: '1.7' }}>{message || 'Are you sure? This cannot be undone.'}</div>
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
@@ -233,8 +234,8 @@ export function Inp({ label, ph, value, onChange, onKeyDown, type = 'text', req,
               style={{ ...base, paddingRight: eye ? '38px' : '12px' }}
             />
             {eye && (
-              <button type="button" onClick={() => setShow(!show)} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: show ? C.accent : C.textDim, fontSize: '15px', display: 'flex', alignItems: 'center', padding: 0 }}>
-                {show ? '🙈' : '👁'}
+              <button type="button" onClick={() => setShow(!show)} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: show ? C.accent : C.textDim, display: 'flex', alignItems: 'center', padding: 0 }}>
+                {show ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             )}
           </div>

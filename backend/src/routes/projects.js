@@ -33,8 +33,8 @@ router.get('/', authenticate, async (req, res) => {
     if (teamView === 'true' && owner) {
       query = query.eq('created_by', owner);
       readOnly = true;
-    } else if (req.user.role === 'admin' || req.user.role === 'hr') {
-      // admin and HR see all projects
+    } else if (req.user.role === 'admin' || req.user.role === 'qa_lead' || req.user.role === 'hr') {
+      // admin, qa_lead, and HR see all projects
       if (req.user.role === 'hr') readOnly = true;
     } else {
       query = query.or(`created_by.eq.${req.user.id},additional_qas.cs.{${req.user.id}}`);
