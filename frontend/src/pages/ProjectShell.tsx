@@ -202,7 +202,7 @@ function BugExpandedRow({ bug, user, onClose, projectId, readOnly, roster, proje
   return (
     <tr>
       <td colSpan={10} style={{ padding: 0 }}>
-        <div style={{ padding: '16px 20px', background: 'rgba(124,106,247,0.03)', borderTop: '1px solid rgba(124,106,247,0.1)', borderBottom: `1px solid ${C.border}` }}>
+        <div style={{ padding: '16px 20px', background: 'rgba(59,130,246,0.03)', borderTop: '1px solid rgba(59,130,246,0.1)', borderBottom: `1px solid ${C.border}` }}>
 
           {/* Comment presence indicators */}
           {(bug.developer_comment || bug.qa_comment || bug.ba_comment) && (
@@ -364,7 +364,7 @@ function TCExpandedRow({ tc, user, onClose, projectId, readOnly }: { tc: any; us
   return (
     <tr>
       <td colSpan={10} style={{ padding: 0 }}>
-        <div style={{ padding: '16px 20px', background: 'rgba(124,106,247,0.03)', borderTop: '1px solid rgba(124,106,247,0.1)', borderBottom: `1px solid ${C.border}` }}>
+        <div style={{ padding: '16px 20px', background: 'rgba(59,130,246,0.03)', borderTop: '1px solid rgba(59,130,246,0.1)', borderBottom: `1px solid ${C.border}` }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px 20px', marginBottom: '14px' }}>
             <div style={{ gridColumn: '1/-1', padding: '12px 16px', background: 'rgba(255,255,255,.02)', border: `1px solid ${C.border}`, borderRadius: '9px' }}>
               <div style={{ fontSize: '10px', fontWeight: '700', color: C.textDim, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '8px' }}>STEPS</div>
@@ -583,7 +583,7 @@ function ImportTestCasesModal({ projectCode, onClose, onImport }: {
               <thead>
                 <tr>
                   {['Module', 'Summary', 'Priority', 'Platform', 'Labels'].map(h => (
-                    <th key={h} style={{ padding: '8px 10px', textAlign: 'left', color: C.textMid, fontWeight: '600', letterSpacing: '.08em', textTransform: 'uppercase', fontSize: '10px', whiteSpace: 'nowrap', borderBottom: `1px solid ${C.border}`, background: 'var(--qa-surface)', position: 'sticky', top: 0, zIndex: 10 }}>{h}</th>
+                    <th key={h} style={{ padding: '8px 10px', textAlign: 'left', color: 'var(--qa-accent)', fontWeight: '700', fontFamily: "var(--font-body, 'Manrope', sans-serif)", letterSpacing: '.08em', textTransform: 'uppercase', fontSize: '10px', whiteSpace: 'nowrap', borderBottom: `1px solid ${C.border}`, background: 'var(--qa-surface)', position: 'sticky', top: 0, zIndex: 10 }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -788,7 +788,7 @@ function ImportBugsModal({ projectCode, onClose, onImport }: {
               <thead>
                 <tr>
                   {['Module', 'Summary', 'Priority', 'Status'].map(h => (
-                    <th key={h} style={{ padding: '8px 10px', textAlign: 'left', color: C.textMid, fontWeight: '600', letterSpacing: '.08em', textTransform: 'uppercase', fontSize: '10px', whiteSpace: 'nowrap', borderBottom: `1px solid ${C.border}`, background: 'var(--qa-surface)', position: 'sticky', top: 0, zIndex: 10 }}>{h}</th>
+                    <th key={h} style={{ padding: '8px 10px', textAlign: 'left', color: 'var(--qa-accent)', fontWeight: '700', fontFamily: "var(--font-body, 'Manrope', sans-serif)", letterSpacing: '.08em', textTransform: 'uppercase', fontSize: '10px', whiteSpace: 'nowrap', borderBottom: `1px solid ${C.border}`, background: 'var(--qa-surface)', position: 'sticky', top: 0, zIndex: 10 }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -1345,7 +1345,7 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
           {/* Left: title + inline chips */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-              <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 700, color: 'var(--qa-text)', fontFamily: "'JetBrains Mono',monospace", letterSpacing: '-0.02em', lineHeight: 1.2 }}>{project.name}</h1>
+              <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 700, color: 'var(--qa-text)', fontFamily: "var(--font-heading, 'Montserrat', sans-serif)", letterSpacing: '-0.02em', lineHeight: 1.2 }}>{project.name}</h1>
               {canEdit && editingCode ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <input autoFocus value={codeValue}
@@ -1361,7 +1361,7 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                 <span onClick={canEdit ? () => setEditingCode(true) : undefined}
                   style={{
                     padding: '3px 8px', borderRadius: '6px',
-                    background: 'rgba(124,106,247,0.12)', border: '1px solid rgba(124,106,247,0.22)',
+                    background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.22)',
                     color: 'var(--qa-accent)', fontSize: '11px', fontWeight: 700,
                     fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.02em',
                     cursor: canEdit ? 'pointer' : 'default',
@@ -1566,7 +1566,7 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
           <div className="fu">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
               <div>
-                <h3 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: '700', color: C.text, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '-0.3px' }}>Test Cases</h3>
+                <h3 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: '700', color: C.text, fontFamily: "var(--font-heading, 'Montserrat', sans-serif)", letterSpacing: '-0.3px' }}>Test Cases</h3>
                 <div style={{ fontSize: '11px', color: 'var(--qa-text-faint)', fontFamily: "'JetBrains Mono',monospace" }}>
                   <span style={{ color: C.textMid }}>{testCases.length} total</span> · <span style={{ color: C.green }}>{testCases.filter((t: any) => t.test_result === 'Pass').length} pass</span> · <span style={{ color: C.red }}>{testCases.filter((t: any) => t.test_result === 'Fail').length} fail</span>
                   {' · '}<span style={{ color: 'var(--qa-text-faint)' }}>Click row to expand</span>
@@ -1624,11 +1624,11 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                   </colgroup>
                   <thead>
                     <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                      <th style={{ padding: '10px 8px', textAlign: 'center', fontSize: '10px', color: '#4a4a6a', borderBottom: `1px solid ${C.border}` }}>
+                      <th style={{ padding: '10px 8px', textAlign: 'center', fontSize: '10px', color: 'var(--qa-accent)', borderBottom: `1px solid ${C.border}` }}>
                         {canDelete && <input type="checkbox" checked={displayedTestCases.length > 0 && displayedTestCases.every(t => selectedTCs.has(t.id))} onChange={e => { if (e.target.checked) setSelectedTCs(new Set(displayedTestCases.map((t:any) => t.id))); else setSelectedTCs(new Set()); }} style={{ cursor: 'pointer', accentColor: C.green }} />}
                       </th>
                       {['ID','Module','Summary','Priority','Labels','Platform','Exec','Result',''].map(h => (
-                        <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: '10px', color: '#4a4a6a', fontFamily: "'JetBrains Mono',monospace", fontWeight: '600', letterSpacing: '.1em', textTransform: 'uppercase', whiteSpace: 'nowrap', borderBottom: `1px solid ${C.border}` }}>{h}</th>
+                        <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: '10px', color: 'var(--qa-accent)', fontFamily: "var(--font-body, 'Manrope', sans-serif)", fontWeight: '700', letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap', borderBottom: `1px solid ${C.border}` }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -1639,7 +1639,7 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                       return (
                         <>
                           <tr key={t.id} onClick={() => setExpandedTC(isOpen ? null : t.id)}
-                            style={{ borderBottom: !isOpen && i < displayedTestCases.length - 1 ? `1px solid ${C.border}` : 'none', cursor: 'pointer', background: isSelected ? `${C.green}08` : isOpen ? 'rgba(124,106,247,0.04)' : 'transparent', transition: 'background .15s' }}
+                            style={{ borderBottom: !isOpen && i < displayedTestCases.length - 1 ? `1px solid ${C.border}` : 'none', cursor: 'pointer', background: isSelected ? `${C.green}08` : isOpen ? 'rgba(59,130,246,0.04)' : 'transparent', transition: 'background .15s' }}
                             onMouseEnter={e => { if (!isOpen && !isSelected) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.02)'; }}
                             onMouseLeave={e => { if (!isOpen && !isSelected) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
                             <td style={{ padding: '12px 8px', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
@@ -1704,7 +1704,7 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                     <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                       {(labelOptions.length > 0 ? labelOptions : ['Smoke','Regression','Sanity','Integration','E2E']).map((l: string) => {
                         const selected = tcLabels.includes(l);
-                        const color = LABEL_COLORS[l] || '#7c6af7';
+                        const color = LABEL_COLORS[l] || '#3B82F6';
                         return (
                           <div key={l} onClick={() => setTcLabels(prev => selected ? prev.filter(x => x !== l) : [...prev, l])}
                             style={{ cursor: 'pointer', padding: '4px 12px', borderRadius: '5px', fontSize: '11px', fontFamily: "'JetBrains Mono',monospace", fontWeight: '600', letterSpacing: '0.02em', transition: 'all 0.15s',
@@ -1721,8 +1721,8 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                   <Sel label="Platform" opts={effectivePlatforms} value={tcPlatform} onChange={setTcPlatform} />
                   <Sel label="Execution Status" opts={['Not Executed','Executed']} value={tcExec} onChange={setTcExec} />
                 </div>
-                <div style={{ background: 'rgba(124,106,247,0.06)', border: '1px solid rgba(124,106,247,0.15)', borderRadius: '8px', padding: '10px 14px', fontSize: '11px', color: '#4a4a6a', fontFamily: "'JetBrains Mono',monospace", marginBottom: '16px' }}>
-                  Auto ID: <span style={{ color: '#7c6af7', fontWeight: '600' }}>{project.project_code}{String((testCases.length || 0) + 1).padStart(3, '0')}</span>
+                <div style={{ background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)', borderRadius: '8px', padding: '10px 14px', fontSize: '11px', color: '#4a4a6a', fontFamily: "'JetBrains Mono',monospace", marginBottom: '16px' }}>
+                  Auto ID: <span style={{ color: '#3B82F6', fontWeight: '600' }}>{project.project_code}{String((testCases.length || 0) + 1).padStart(3, '0')}</span>
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <Btn
@@ -1746,7 +1746,7 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
           <div className="fu">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
               <div>
-                <h3 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: '700', color: C.text, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '-0.3px' }}>Bug Tracker</h3>
+                <h3 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: '700', color: C.text, fontFamily: "var(--font-heading, 'Montserrat', sans-serif)", letterSpacing: '-0.3px' }}>Bug Tracker</h3>
                 <div style={{ fontSize: '11px', color: 'var(--qa-text-faint)', fontFamily: "'JetBrains Mono',monospace" }}><span style={{ color: C.textMid }}>{bugs.length} bugs</span> · <span style={{ color: 'var(--qa-text-faint)' }}>Click row to expand</span></div>
               </div>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -1864,7 +1864,7 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                       onDragOver={e => { if (!canEdit || user.role === 'hr') return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOverColumn(status); }}
                       onDrop={e => { if (!canEdit || user.role === 'hr') return; e.preventDefault(); if (!draggedBugId) return; saveBugStatusMut.mutate({ id: draggedBugId, status }); setDraggedBugId(null); setDragOverColumn(null); }}
                       onDragLeave={() => setDragOverColumn(null)}
-                      style={{ background: isOver ? 'rgba(124,106,247,0.08)' : 'var(--qa-card)', border: isOver ? '1px solid rgba(124,106,247,0.4)' : `1px solid ${C.border}`, borderRadius: '12px', padding: '12px', minHeight: '200px', transition: 'background 0.15s, border-color 0.15s' }}>
+                      style={{ background: isOver ? 'rgba(59,130,246,0.08)' : 'var(--qa-card)', border: isOver ? '1px solid rgba(59,130,246,0.4)' : `1px solid ${C.border}`, borderRadius: '12px', padding: '12px', minHeight: '200px', transition: 'background 0.15s, border-color 0.15s' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', paddingBottom: '8px', borderBottom: `1px solid ${C.border}` }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: col, flexShrink: 0 }} />
@@ -1918,11 +1918,11 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                   </colgroup>
                   <thead>
                     <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                      <th style={{ padding: '10px 8px', textAlign: 'center', fontSize: '10px', color: '#4a4a6a', borderBottom: `1px solid ${C.border}` }}>
+                      <th style={{ padding: '10px 8px', textAlign: 'center', fontSize: '10px', color: 'var(--qa-accent)', borderBottom: `1px solid ${C.border}` }}>
                         {canDelete && <input type="checkbox" checked={displayedBugs.length > 0 && displayedBugs.every(b => selectedBugs.has(b.id))} onChange={e => { if (e.target.checked) setSelectedBugs(new Set(displayedBugs.map((b:any) => b.id))); else setSelectedBugs(new Set()); }} style={{ cursor: 'pointer', accentColor: C.accent }} />}
                       </th>
                       {['#','Module','Summary','Reported By','Assignee','Priority','Bug Status','QA Status',''].map(h => (
-                        <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: '10px', color: '#4a4a6a', fontFamily: "'JetBrains Mono',monospace", fontWeight: '600', letterSpacing: '.1em', textTransform: 'uppercase', whiteSpace: 'nowrap', borderBottom: `1px solid ${C.border}` }}>{h}</th>
+                        <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: '10px', color: 'var(--qa-accent)', fontFamily: "var(--font-body, 'Manrope', sans-serif)", fontWeight: '700', letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap', borderBottom: `1px solid ${C.border}` }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -1934,7 +1934,7 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                       return (
                         <>
                           <tr key={b.id} id={`bug-row-${b.id}`}
-                            style={{ borderBottom: !isOpen && i < displayedBugs.length - 1 ? `1px solid ${C.border}` : 'none', cursor: 'pointer', background: isSelected ? `${C.accent}08` : isOpen ? 'rgba(124,106,247,0.04)' : 'transparent', transition: 'background .15s' }}
+                            style={{ borderBottom: !isOpen && i < displayedBugs.length - 1 ? `1px solid ${C.border}` : 'none', cursor: 'pointer', background: isSelected ? `${C.accent}08` : isOpen ? 'rgba(59,130,246,0.04)' : 'transparent', transition: 'background .15s' }}
                             onClick={() => setExpandedBug(isOpen ? null : b.id)}
                             onMouseEnter={e => { if (!isOpen && !isSelected) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.02)'; }}
                             onMouseLeave={e => { if (!isOpen && !isSelected) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
@@ -2032,7 +2032,7 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
         {page === 'automation' && (
           <div className="fu">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: C.text, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '-0.3px' }}>Automation Scripts</h3>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: C.text, fontFamily: "var(--font-heading, 'Montserrat', sans-serif)", letterSpacing: '-0.3px' }}>Automation Scripts</h3>
               {(scripts as any[]).length > 0 && (
                 <Btn sm v="ghost" onClick={downloadAllScripts}>⬇ Download All as ZIP</Btn>
               )}
@@ -2099,7 +2099,7 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
         {page === 'documents' && (
           <div className="fu">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: C.text, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '-0.3px' }}>Documents</h3>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: C.text, fontFamily: "var(--font-heading, 'Montserrat', sans-serif)", letterSpacing: '-0.3px' }}>Documents</h3>
               {canEdit && <Btn sm icon="＋" onClick={() => setAddDoc(true)}>Add Document</Btn>}
             </div>
 

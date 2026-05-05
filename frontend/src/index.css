@@ -4,17 +4,27 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+:root {
+  --font-heading: 'Montserrat', sans-serif;
+  --font-body: 'Manrope', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
 html {
   transition: background-color 0.25s ease, color 0.2s ease;
 }
 
 body {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-body);
   background: var(--qa-bg, #050508);
   color: var(--qa-text, #f1f0f5);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   transition: background-color 0.25s ease, color 0.2s ease;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
 }
 
 ::-webkit-scrollbar { width: 3px; height: 3px; }
@@ -43,8 +53,8 @@ textarea { resize: vertical; }
   100% { background-position: 200% 0; }
 }
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 20px rgba(124,106,247,0.2); }
-  50% { box-shadow: 0 0 40px rgba(124,106,247,0.4); }
+  0%, 100% { box-shadow: 0 0 20px rgba(59,130,246,0.2); }
+  50% { box-shadow: 0 0 40px rgba(59,130,246,0.4); }
 }
 @keyframes float {
   0%, 100% { transform: translate(0, 0) scale(1); }

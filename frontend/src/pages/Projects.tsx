@@ -17,7 +17,7 @@ function StatusPill({ status }: { status: string }) {
       display: 'inline-flex', alignItems: 'center', gap: '6px',
       padding: '3px 10px 3px 8px', borderRadius: '999px',
       background: `${color}1f`, color, border: `1px solid ${color}38`,
-      fontSize: '10px', fontWeight: 600, fontFamily: "'JetBrains Mono',monospace",
+      fontSize: '10px', fontWeight: 600, fontFamily: "var(--font-body, 'Manrope', sans-serif)",
       letterSpacing: '.02em', whiteSpace: 'nowrap',
     }}>
       <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: color, flexShrink: 0 }} />
@@ -43,13 +43,13 @@ function ProjCard({ p, onClick, onDelete, viewOnly }: { p: any; onClick: () => v
       style={{
         position: 'relative',
         background: 'var(--qa-card)',
-        border: `1px solid ${hov ? 'var(--qa-accent)' : 'rgba(255,255,255,0.06)'}`,
+        border: `1px solid ${hov ? 'var(--qa-accent)' : 'var(--qa-border-lt)'}`,
         borderRadius: '14px',
         padding: '18px',
         cursor: 'pointer',
         opacity: p.status === 'completed' ? 0.6 : 1,
         transform: hov ? 'translateY(-2px)' : 'none',
-        boxShadow: hov ? '0 10px 30px -10px rgba(124,106,247,0.45)' : 'none',
+        boxShadow: hov ? '0 10px 30px -10px rgba(59,130,246,0.35)' : 'none',
         transition: 'transform .2s, border-color .2s, box-shadow .2s',
         overflow: 'hidden',
       }}
@@ -73,8 +73,8 @@ function ProjCard({ p, onClick, onDelete, viewOnly }: { p: any; onClick: () => v
         <span style={{
           padding: '3px 8px',
           borderRadius: '6px',
-          background: 'rgba(124,106,247,0.12)',
-          border: '1px solid rgba(124,106,247,0.22)',
+          background: 'rgba(59,130,246,0.12)',
+          border: '1px solid rgba(59,130,246,0.22)',
           color: 'var(--qa-accent)',
           fontSize: '10.5px', fontWeight: 700,
           fontFamily: "'JetBrains Mono',monospace",
@@ -84,7 +84,7 @@ function ProjCard({ p, onClick, onDelete, viewOnly }: { p: any; onClick: () => v
       </div>
 
       {/* Project name */}
-      <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--qa-text)', lineHeight: 1.35, marginBottom: '6px', fontFamily: "'JetBrains Mono',monospace" }}>{p.name}</div>
+      <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--qa-text)', lineHeight: 1.35, marginBottom: '6px', fontFamily: "var(--font-heading, 'Montserrat', sans-serif)" }}>{p.name}</div>
 
       {/* Description */}
       <div style={{
@@ -92,20 +92,20 @@ function ProjCard({ p, onClick, onDelete, viewOnly }: { p: any; onClick: () => v
         marginBottom: '14px',
         minHeight: '2.9em',
         display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-        fontFamily: "'JetBrains Mono',monospace",
+        fontFamily: "var(--font-body, 'Manrope', sans-serif)",
       } as React.CSSProperties}>{p.description || ' '}</div>
 
       {/* Tags row */}
       <div style={{ display: 'flex', gap: '6px', marginBottom: '14px', flexWrap: 'wrap' }}>
         <span style={{
           fontSize: '10px', padding: '3px 8px', borderRadius: '6px',
-          background: p.figma_url ? 'rgba(124,106,247,0.12)' : 'rgba(255,255,255,0.04)',
+          background: p.figma_url ? 'rgba(59,130,246,0.12)' : 'rgba(255,255,255,0.04)',
           color: p.figma_url ? 'var(--qa-accent)' : 'var(--qa-text-faint)',
           fontFamily: "'JetBrains Mono',monospace", fontWeight: 600,
         }}>{p.figma_url ? 'Figma ✓' : 'Figma —'}</span>
         <span style={{
           fontSize: '10px', padding: '3px 8px', borderRadius: '6px',
-          background: p.frd_url ? 'rgba(124,106,247,0.12)' : 'rgba(255,255,255,0.04)',
+          background: p.frd_url ? 'rgba(59,130,246,0.12)' : 'rgba(255,255,255,0.04)',
           color: p.frd_url ? 'var(--qa-accent)' : 'var(--qa-text-faint)',
           fontFamily: "'JetBrains Mono',monospace", fontWeight: 600,
         }}>{p.frd_url ? 'FRD ✓' : 'FRD —'}</span>
@@ -120,8 +120,8 @@ function ProjCard({ p, onClick, onDelete, viewOnly }: { p: any; onClick: () => v
       {/* Pass rate */}
       <div style={{ marginBottom: '14px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-          <span style={{ fontSize: '9px', color: 'var(--qa-text-mid)', fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.1em', textTransform: 'uppercase', fontWeight: 600 }}>Pass Rate</span>
-          <span style={{ fontSize: '11px', color: 'var(--qa-text)', fontFamily: "'JetBrains Mono',monospace", fontWeight: 700 }}>{passRate}%</span>
+          <span style={{ fontSize: '9px', color: 'var(--qa-text-mid)', fontFamily: "var(--font-body, 'Manrope', sans-serif)", letterSpacing: '.1em', textTransform: 'uppercase', fontWeight: 600 }}>Pass Rate</span>
+          <span style={{ fontSize: '11px', color: 'var(--qa-text)', fontFamily: "var(--font-body, 'Manrope', sans-serif)", fontWeight: 700 }}>{passRate}%</span>
         </div>
         <div style={{ height: '4px', background: 'rgba(255,255,255,0.06)', borderRadius: '999px', overflow: 'hidden' }}>
           <div style={{
@@ -136,8 +136,8 @@ function ProjCard({ p, onClick, onDelete, viewOnly }: { p: any; onClick: () => v
       {/* Bottom row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ display: 'flex', gap: '14px' }}>
-          <span style={{ fontSize: '11px', color: 'var(--qa-text-mid)', fontFamily: "'JetBrains Mono',monospace", display: 'inline-flex', alignItems: 'center', gap: '4px' }}><BugIcon size={12} /> <strong style={{ color: 'var(--qa-text)', fontWeight: 700 }}>{p.bug_count || 0}</strong></span>
-          <span style={{ fontSize: '11px', color: 'var(--qa-text-mid)', fontFamily: "'JetBrains Mono',monospace" }}>✓ <strong style={{ color: 'var(--qa-text)', fontWeight: 700 }}>{p.test_case_count || 0}</strong></span>
+          <span style={{ fontSize: '11px', color: 'var(--qa-text-mid)', fontFamily: "var(--font-body, 'Manrope', sans-serif)", display: 'inline-flex', alignItems: 'center', gap: '4px' }}><BugIcon size={12} /> <strong style={{ color: 'var(--qa-text)', fontWeight: 700 }}>{p.bug_count || 0}</strong></span>
+          <span style={{ fontSize: '11px', color: 'var(--qa-text-mid)', fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>✓ <strong style={{ color: 'var(--qa-text)', fontWeight: 700 }}>{p.test_case_count || 0}</strong></span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           {qaNames.slice(0, 3).map((name, i) => (
@@ -146,7 +146,7 @@ function ProjCard({ p, onClick, onDelete, viewOnly }: { p: any; onClick: () => v
               border: '2px solid var(--qa-card)',
               marginLeft: i === 0 ? 0 : '-8px',
               overflow: 'hidden',
-              background: `linear-gradient(135deg,${C.accent},${C.purple})`,
+              background: `linear-gradient(135deg,${C.accent},${C.accentBright})`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '9px', fontWeight: 700, color: '#fff',
               fontFamily: "'JetBrains Mono',monospace",
@@ -253,10 +253,10 @@ export function ProjectsPage({ user, onProjectClick, filterByQA, teamViewMember,
     <div style={{ padding: '28px 36px 48px', width: '100%' }} className="fu">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '22px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 600, color: 'var(--qa-text)', fontFamily: "'JetBrains Mono',monospace", letterSpacing: '-0.02em' }}>
+          <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 700, color: 'var(--qa-text)', fontFamily: "var(--font-heading, 'Montserrat', sans-serif)", letterSpacing: '-0.02em' }}>
             {pageTitle}
           </h1>
-          <div style={{ fontSize: '12px', color: 'var(--qa-text-mid)', fontFamily: "'JetBrains Mono',monospace", marginTop: '6px' }}>
+          <div style={{ fontSize: '12px', color: 'var(--qa-text-mid)', fontFamily: "var(--font-body, 'Manrope', sans-serif)", marginTop: '6px' }}>
             <span style={{ color: '#10b981' }}>{filtered.filter((p: any) => p.status === 'active').length} active</span>
             <span style={{ opacity: 0.4, margin: '0 6px' }}>·</span>
             {filtered.length} total{isElevatedRole && !isDevMode && !isTeamView && projectTab === 'all' ? ' (other QAs)' : ''}
@@ -308,7 +308,7 @@ export function ProjectsPage({ user, onProjectClick, filterByQA, teamViewMember,
           placeholder="Search projects…"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          onFocus={e => { e.currentTarget.style.borderColor = 'var(--qa-accent)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(124,106,247,0.12)'; }}
+          onFocus={e => { e.currentTarget.style.borderColor = 'var(--qa-accent)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.12)'; }}
           onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; e.currentTarget.style.boxShadow = 'none'; }}
           style={{
             width: '100%',
@@ -338,7 +338,7 @@ export function ProjectsPage({ user, onProjectClick, filterByQA, teamViewMember,
           ? <div style={{ color: 'var(--qa-text-mid)', fontFamily: "'JetBrains Mono',monospace", fontSize: '13px' }}>Loading projects…</div>
           : filtered.length === 0
             ? <div style={{ textAlign: 'center', padding: '80px 20px', fontFamily: "'JetBrains Mono',monospace" }}>
-                <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'rgba(124,106,247,0.08)', border: '1px solid rgba(124,106,247,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', margin: '0 auto 16px' }}>◈</div>
+                <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', margin: '0 auto 16px' }}>◈</div>
                 <div style={{ color: 'var(--qa-text)', fontWeight: '600', marginBottom: '6px', fontSize: '14px' }}>
                   {search ? 'No results' : isTeamView ? 'No projects assigned' : 'No projects yet'}
                 </div>

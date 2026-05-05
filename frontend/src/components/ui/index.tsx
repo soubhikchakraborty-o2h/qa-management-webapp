@@ -41,7 +41,7 @@ export function Chip({ text, color = C.textDim, sm }: { text: string; color?: st
       padding: sm ? '2px 6px' : '3px 10px',
       fontSize: sm ? '10px' : '11px',
       fontWeight: '600',
-      fontFamily: "'JetBrains Mono', monospace",
+      fontFamily: "var(--font-body, 'Manrope', sans-serif)",
       whiteSpace: 'nowrap',
       letterSpacing: '0.02em',
     }}>{text}</span>
@@ -58,16 +58,16 @@ export function Btn({ children, onClick, v = 'primary', sm, icon, style: s, disa
 
   const styles: Record<BtnVariant, any> = {
     primary: {
-      background: h ? 'linear-gradient(135deg,#9d8ff9,#7c6af7)' : 'linear-gradient(135deg,#7c6af7,#6a5ae0)',
+      background: h ? 'linear-gradient(135deg,#60A5FA,#3B82F6)' : 'linear-gradient(135deg,#3B82F6,#2563EB)',
       border: 'none',
       color: '#ffffff',
       boxShadow: h
-        ? '0 4px 12px rgba(124,106,247,0.4), inset 0 1px 0 rgba(255,255,255,0.15)'
+        ? '0 4px 12px rgba(59,130,246,0.4), inset 0 1px 0 rgba(255,255,255,0.15)'
         : '0 1px 3px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)',
       transform: h ? 'translateY(-1px)' : 'none',
     },
     ghost: {
-      background: h ? 'rgba(124,106,247,0.06)' : 'transparent',
+      background: h ? 'rgba(59,130,246,0.06)' : 'transparent',
       border: `1px solid ${h ? 'var(--qa-border-foc)' : 'var(--qa-border-lt)'}`,
       color: h ? C.text : C.textMid,
       boxShadow: 'none',
@@ -155,18 +155,18 @@ export function Modal({ title, children, onClose, wide }: {
           maxHeight: 'calc(100vh - 40px)',
           overflow: 'hidden',
           display: 'flex', flexDirection: 'column',
-          boxShadow: '0 25px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(124,106,247,0.1)',
+          boxShadow: '0 25px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(59,130,246,0.1)',
         }}
       >
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           padding: '16px 22px',
           borderBottom: `1px solid ${C.border}`,
-          background: 'rgba(124,106,247,0.03)',
+          background: 'rgba(59,130,246,0.03)',
           borderRadius: '14px 14px 0 0',
         }}>
           <h3 style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: C.text, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '-0.2px' }}>{title}</h3>
-          <button onClick={onClose} style={{ background: 'rgba(124,106,247,0.06)', border: `1px solid ${C.border}`, color: C.textMid, cursor: 'pointer', fontSize: '12px', borderRadius: '6px', width: '26px', height: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>✕</button>
+          <button onClick={onClose} style={{ background: 'rgba(59,130,246,0.06)', border: `1px solid ${C.border}`, color: C.textMid, cursor: 'pointer', fontSize: '12px', borderRadius: '6px', width: '26px', height: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>✕</button>
         </div>
         <div style={{ padding: '22px', overflowY: 'auto', flex: 1 }}>{children}</div>
       </div>
@@ -214,7 +214,7 @@ export function Inp({ label, ph, value, onChange, onKeyDown, type = 'text', req,
     fontFamily: "'JetBrains Mono', monospace",
     outline: 'none',
     transition: 'border-color 0.15s, box-shadow 0.15s',
-    boxShadow: focused ? '0 0 0 3px rgba(124,106,247,0.1)' : 'none',
+    boxShadow: focused ? '0 0 0 3px rgba(59,130,246,0.1)' : 'none',
   };
   return (
     <div style={{ marginBottom: '14px' }}>

@@ -25,10 +25,10 @@ function NavItem({ label, icon, active, onClick, indent, collapsed }: {
         justifyContent: collapsed ? 'center' : 'flex-start',
         padding: collapsed ? '10px 0' : `9px 10px 9px ${indent ? '22px' : '10px'}`,
         borderRadius: '8px', cursor: 'pointer', marginBottom: '2px',
-        background: active ? 'rgba(124,106,247,0.12)' : hov ? 'rgba(124,106,247,0.06)' : 'transparent',
+        background: active ? 'rgba(59,130,246,0.12)' : hov ? 'rgba(59,130,246,0.06)' : 'transparent',
         color: active ? 'var(--qa-accent)' : hov ? 'var(--qa-text)' : 'var(--qa-text-mid)',
         fontSize: '12px', fontWeight: active ? 600 : 500,
-        fontFamily: "'JetBrains Mono', monospace",
+        fontFamily: "var(--font-body, 'Manrope', sans-serif)",
         transition: 'background 0.15s, color 0.15s',
       }}
     >
@@ -141,8 +141,8 @@ export function Sidebar({ page, setPage, user, insideProject, onBackToProjects, 
       <div style={{ width: '220px', display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         {/* Logo */}
         <div style={{ padding: '18px 16px 14px' }}>
-          <div style={{ fontSize: '9px', letterSpacing: '0.2em', color: 'var(--qa-text-faint)', fontFamily: "'JetBrains Mono', monospace", marginBottom: '3px', textTransform: 'uppercase' }}>O2H Technology</div>
-          <div style={{ fontSize: '15px', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: 'var(--qa-text)', letterSpacing: '-0.3px' }}>Quality Analysis</div>
+          <div style={{ fontSize: '9px', letterSpacing: '0.2em', color: 'var(--qa-text-faint)', fontFamily: "var(--font-body, 'Manrope', sans-serif)", marginBottom: '3px', textTransform: 'uppercase' }}>O2H Technology</div>
+          <div style={{ fontSize: '15px', fontWeight: 700, fontFamily: "var(--font-heading, 'Montserrat', sans-serif)", color: 'var(--qa-text)', letterSpacing: '-0.3px' }}>Quality Analysis</div>
         </div>
 
         {/* Divider */}
@@ -155,7 +155,7 @@ export function Sidebar({ page, setPage, user, insideProject, onBackToProjects, 
             style={{
               position: 'relative', flexShrink: 0,
               width: '36px', height: '36px', borderRadius: '50%',
-              border: `2px solid ${avatarHov && isQAUser ? 'var(--qa-accent)' : 'rgba(124,106,247,0.22)'}`,
+              border: `2px solid ${avatarHov && isQAUser ? 'var(--qa-accent)' : 'rgba(59,130,246,0.22)'}`,
               overflow: 'hidden',
               cursor: isQAUser ? 'pointer' : 'default',
               transition: 'border-color .15s',
@@ -171,10 +171,10 @@ export function Sidebar({ page, setPage, user, insideProject, onBackToProjects, 
             ) : (
               <div style={{
                 width: '100%', height: '100%',
-                background: 'linear-gradient(135deg,#7c6af7,#6a5ae0)',
+                background: 'linear-gradient(135deg,#3B82F6,#2563EB)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '14px', fontWeight: 700, color: '#ffffff',
-                fontFamily: "'JetBrains Mono', monospace",
+                fontFamily: "var(--font-heading, 'Montserrat', sans-serif)",
               }}>{user.name[0]}</div>
             )}
             {isQAUser && avatarHov && (
@@ -187,17 +187,17 @@ export function Sidebar({ page, setPage, user, insideProject, onBackToProjects, 
             )}
           </div>
           <div style={{ overflow: 'hidden', flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--qa-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: "'JetBrains Mono', monospace", marginBottom: '3px' }}>{user.name}</div>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--qa-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: "var(--font-body, 'Manrope', sans-serif)", marginBottom: '3px' }}>{user.name}</div>
             <div style={{
               display: 'inline-block',
               padding: '2px 7px',
               borderRadius: '4px',
               fontSize: '9px',
               fontWeight: 600,
-              background: 'rgba(124,106,247,0.12)',
+              background: 'rgba(59,130,246,0.12)',
               color: 'var(--qa-accent)',
-              border: '1px solid rgba(124,106,247,0.22)',
-              fontFamily: "'JetBrains Mono', monospace",
+              border: '1px solid rgba(59,130,246,0.22)',
+              fontFamily: "var(--font-body, 'Manrope', sans-serif)",
               letterSpacing: '.05em',
             }}>
               {user.role === 'admin' ? 'ADMIN' : user.role === 'qa_lead' ? 'QA LEAD' : user.role === 'developer' ? 'DEVELOPER' : 'QA ENGINEER'}
@@ -210,7 +210,7 @@ export function Sidebar({ page, setPage, user, insideProject, onBackToProjects, 
                   display: 'block', marginTop: '4px',
                   background: 'none', border: 'none',
                   color: hovChangePw ? 'var(--qa-accent)' : 'var(--qa-text-faint)',
-                  fontFamily: "'JetBrains Mono',monospace", fontSize: '10px',
+                  fontFamily: "var(--font-body, 'Manrope', sans-serif)", fontSize: '10px',
                   cursor: 'pointer', padding: '0', textDecoration: 'underline',
                   textUnderlineOffset: '2px', transition: 'color .15s',
                 }}>change password</button>
@@ -225,7 +225,7 @@ export function Sidebar({ page, setPage, user, insideProject, onBackToProjects, 
         <nav style={{ flex: 1, padding: '6px 10px' }}>
           <NavItem label="Projects" icon="◈" active={page === 'projects' && !insideProject} onClick={() => { setPage('projects'); onBackToProjects(); }} />
           {insideProject && <>
-            <div style={{ padding: '12px 10px 6px', fontSize: '9px', color: 'var(--qa-text-xfaint)', fontFamily: "'JetBrains Mono', monospace", letterSpacing: '.2em', textTransform: 'uppercase' }}>In Project</div>
+            <div style={{ padding: '12px 10px 6px', fontSize: '9px', color: 'var(--qa-text-xfaint)', fontFamily: "var(--font-body, 'Manrope', sans-serif)", letterSpacing: '.2em', textTransform: 'uppercase' }}>In Project</div>
             <NavItem label="Overview"    icon="◉" active={page === 'overview'}   onClick={() => setPage('overview')}   indent />
             <NavItem label="Test Cases"  icon="✓" active={page === 'testcases'}  onClick={() => setPage('testcases')}  indent />
             <NavItem label="Bug Tracker" icon="⬡" active={page === 'bugs'}       onClick={() => setPage('bugs')}       indent />
@@ -252,14 +252,14 @@ export function Sidebar({ page, setPage, user, insideProject, onBackToProjects, 
               display: 'flex', alignItems: 'center', gap: '10px',
               padding: '8px 10px', marginBottom: '2px',
               borderRadius: '8px', cursor: 'pointer',
-              background: hovTheme ? 'rgba(124,106,247,0.06)' : 'transparent',
+              background: hovTheme ? 'rgba(59,130,246,0.06)' : 'transparent',
               transition: 'background 0.15s',
             }}
           >
             <span style={{ fontSize: '13px', flexShrink: 0, width: '18px', textAlign: 'center' }}>{isDark ? '🌙' : '☀️'}</span>
             <div style={{
               width: '36px', height: '20px', borderRadius: '10px', flexShrink: 0,
-              background: isDark ? 'var(--qa-accent)' : 'rgba(124,106,247,0.3)',
+              background: isDark ? 'var(--qa-accent)' : 'rgba(59,130,246,0.3)',
               position: 'relative', transition: 'background 0.2s',
             }}>
               <div style={{
@@ -270,7 +270,7 @@ export function Sidebar({ page, setPage, user, insideProject, onBackToProjects, 
                 boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
               }} />
             </div>
-            <span style={{ fontSize: '12px', color: hovTheme ? 'var(--qa-text)' : 'var(--qa-text-mid)', fontFamily: "'JetBrains Mono', monospace", fontWeight: 500, transition: 'color 0.15s' }}>
+            <span style={{ fontSize: '12px', color: hovTheme ? 'var(--qa-text)' : 'var(--qa-text-mid)', fontFamily: "var(--font-body, 'Manrope', sans-serif)", fontWeight: 500, transition: 'color 0.15s' }}>
               {isDark ? 'Dark' : 'Light'}
             </span>
           </div>
@@ -283,7 +283,7 @@ export function Sidebar({ page, setPage, user, insideProject, onBackToProjects, 
               border: `1px solid ${RED}30`,
               borderRadius: '8px',
               padding: '10px',
-              fontFamily: "'JetBrains Mono', monospace",
+              fontFamily: "var(--font-body, 'Manrope', sans-serif)",
             }}>
               <div style={{ fontSize: '10px', color: 'var(--qa-text)', marginBottom: '8px', fontWeight: 600 }}>Sign out?</div>
               <div style={{ display: 'flex', gap: '6px' }}>
@@ -292,7 +292,7 @@ export function Sidebar({ page, setPage, user, insideProject, onBackToProjects, 
                   style={{
                     flex: 1, padding: '6px 0', borderRadius: '6px', border: 'none', cursor: 'pointer',
                     background: RED, color: '#fff', fontSize: '10px', fontWeight: 700,
-                    fontFamily: "'JetBrains Mono', monospace",
+                    fontFamily: "var(--font-body, 'Manrope', sans-serif)",
                   }}
                 >Yes</button>
                 <button
@@ -300,7 +300,7 @@ export function Sidebar({ page, setPage, user, insideProject, onBackToProjects, 
                   style={{
                     flex: 1, padding: '6px 0', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer',
                     background: 'transparent', color: 'var(--qa-text-mid)', fontSize: '10px', fontWeight: 600,
-                    fontFamily: "'JetBrains Mono', monospace",
+                    fontFamily: "var(--font-body, 'Manrope', sans-serif)",
                   }}
                 >No</button>
               </div>
@@ -316,7 +316,7 @@ export function Sidebar({ page, setPage, user, insideProject, onBackToProjects, 
                 borderRadius: '8px', cursor: 'pointer',
                 background: hovSign ? 'rgba(239,68,68,0.08)' : 'transparent',
                 color: hovSign ? RED : 'var(--qa-text-mid)',
-                fontSize: '12px', fontWeight: 500, fontFamily: "'JetBrains Mono', monospace",
+                fontSize: '12px', fontWeight: 500, fontFamily: "var(--font-body, 'Manrope', sans-serif)",
                 transition: 'background 0.15s, color 0.15s',
               }}
             >
@@ -342,15 +342,15 @@ export function Sidebar({ page, setPage, user, insideProject, onBackToProjects, 
           <div style={{ textAlign: 'center', marginBottom: '20px' }}>
             {user.avatar_url ? (
               <img src={user.avatar_url} alt={user.name}
-                style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(124,106,247,0.4)', margin: '0 auto', display: 'block' }} />
+                style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(59,130,246,0.4)', margin: '0 auto', display: 'block' }} />
             ) : (
-              <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'linear-gradient(135deg,#7c6af7,#6a5ae0)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', fontWeight: '700', color: '#fff', margin: '0 auto' }}>{user.name[0]}</div>
+              <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'linear-gradient(135deg,#3B82F6,#2563EB)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', fontWeight: '700', color: '#fff', margin: '0 auto' }}>{user.name[0]}</div>
             )}
           </div>
           <button onClick={() => avatarInputRef.current?.click()} disabled={uploadingAvatar} style={{
             display: 'block', width: '100%', padding: '10px',
-            background: uploadingAvatar ? 'rgba(124,106,247,0.4)' : 'rgba(124,106,247,0.15)',
-            border: '1px solid rgba(124,106,247,0.4)', borderRadius: '8px',
+            background: uploadingAvatar ? 'rgba(59,130,246,0.4)' : 'rgba(59,130,246,0.15)',
+            border: '1px solid rgba(59,130,246,0.4)', borderRadius: '8px',
             color: C.accent, fontFamily: "'JetBrains Mono',monospace", fontSize: '12px',
             cursor: uploadingAvatar ? 'not-allowed' : 'pointer', marginBottom: '10px',
           }}>{uploadingAvatar ? 'Uploading…' : '⬆ Choose Image'}</button>
@@ -377,7 +377,7 @@ export function Sidebar({ page, setPage, user, insideProject, onBackToProjects, 
           {pwError && <div style={{ fontSize: '11px', color: '#ef4444', fontFamily: "'JetBrains Mono',monospace", margin: '8px 0 0' }}>⚠ {pwError}</div>}
           <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
             <button onClick={handleChangePassword} disabled={pwPending || !pwCurrent || !pwNew || !pwConfirm} style={{
-              flex: 1, padding: '9px', background: 'rgba(124,106,247,0.2)', border: '1px solid rgba(124,106,247,0.4)',
+              flex: 1, padding: '9px', background: 'rgba(59,130,246,0.2)', border: '1px solid rgba(59,130,246,0.4)',
               borderRadius: '8px', color: C.accent, fontFamily: "'JetBrains Mono',monospace", fontSize: '12px',
               cursor: pwPending ? 'not-allowed' : 'pointer', fontWeight: '600',
             }}>{pwPending ? 'Updating…' : 'Update Password'}</button>
@@ -407,13 +407,13 @@ function TabBadge({ count }: { count: number | undefined }) {
   if (count === undefined || count === null) return null;
   return (
     <span style={{
-      background: 'rgba(124,106,247,0.12)',
+      background: 'rgba(59,130,246,0.12)',
       color: 'var(--qa-accent)',
       borderRadius: '4px',
       padding: '1px 5px',
       fontSize: '8px',
       fontWeight: 700,
-      fontFamily: "'JetBrains Mono', monospace",
+      fontFamily: "var(--font-body, 'Manrope', sans-serif)",
       letterSpacing: '.04em',
       lineHeight: 1.4,
     }}>{count}</span>
@@ -445,7 +445,7 @@ export function OverheadTabs({ page, setPage, counts }: { page: string; setPage:
               background: 'none', border: 'none',
               borderBottom: `2px solid ${active ? 'var(--qa-accent)' : 'transparent'}`,
               color: active ? 'var(--qa-accent)' : isHov ? 'var(--qa-text)' : 'var(--qa-text-mid)',
-              fontFamily: "'JetBrains Mono', monospace",
+              fontFamily: "var(--font-body, 'Manrope', sans-serif)",
               fontSize: '12px', fontWeight: active ? 600 : 500,
               cursor: 'pointer', whiteSpace: 'nowrap',
               transition: 'color 0.15s, border-color 0.15s',
