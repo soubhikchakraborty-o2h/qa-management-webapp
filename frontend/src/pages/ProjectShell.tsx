@@ -5,12 +5,14 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { Document as DocxDocument, Packer as DocxPacker, Paragraph as DocxParagraph, TextRun as DocxTextRun, Table as DocxTable, TableRow as DocxTableRow, TableCell as DocxTableCell, WidthType as DocxWidthType } from 'docx';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { C, STATUS_COLORS, QA_STATUS_COLORS, STATUS_LABELS, APP_TYPE_ICON, PRIORITY_COLORS, LABEL_COLORS, PLATFORM_COLORS } from '../lib/constants';
-import { getTestCases, createTestCase, updateTestCase, deleteTestCase, getBugs, createBug, updateBug, deleteBug, addComment, getComments, getAutomation, updateScript, deleteAutomationScript, uploadScript, uploadZip, getDocuments, addDocument, deleteDocument, updateProject, getSettings, getTeam, reassignProject, addAdditionalQA, getRoster, updateRoster, addBugResource, deleteBugResource, bulkImportTestCases, bulkImportBugs, getGlobalMembers, getCredentials, addCredential, deleteCredential } from '../lib/api';
+import { getTestCases, createTestCase, updateTestCase, deleteTestCase, getBugs, createBug, updateBug, deleteBug, addComment, getComments, getAutomation, updateScript, deleteAutomationScript, uploadScript, uploadZip, getDocuments, addDocument, deleteDocument, updateProject, getSettings, getTeam, reassignProject, addAdditionalQA, getRoster, updateRoster, addBugResource, deleteBugResource, bulkImportTestCases, bulkImportBugs, getGlobalMembers, getCredentials, addCredential, updateCredential, deleteCredential } from '../lib/api';
 import { GCard, Chip, Btn, Modal, Inp, Sel, ConfirmDeleteModal } from '../components/ui/index';
-import { Link, FileText, User, Calendar, ExternalLink, Trash2, ChevronLeft, ChevronDown, Upload, Download, KeyRound, Copy, Check, Plus, Eye, EyeOff } from 'lucide-react';
+import { Link, FileText, User, Calendar, ExternalLink, Trash2, ChevronLeft, ChevronDown, Upload, Download, KeyRound, Copy, Check, Plus, Eye, EyeOff, Pencil } from 'lucide-react';
+import { TypeSearch } from '../components/ui/TypeSearch';
 import { OverheadTabs } from '../components/layout/index';
 
 // ── DeveloperComboInput ───────────────────────────────────────
@@ -459,10 +461,11 @@ function TCExpandedRow({ tc, user, onClose, projectId, readOnly }: { tc: any; us
 }
 
 // ── ImportTestCasesModal ──────────────────────────────────────
-function ImportTestCasesModal({ projectCode, onClose, onImport }: {
+function ImportTestCasesModal({ projectCode, onClose, onImport, isImporting }: {
   projectCode: string;
   onClose: () => void;
   onImport: (rows: any[]) => void;
+  isImporting?: boolean;
 }) {
   const [preview, setPreview] = useState<any[]>([]);
   const [sheetUrl, setSheetUrl] = useState('');
@@ -601,9 +604,9 @@ function ImportTestCasesModal({ projectCode, onClose, onImport }: {
             </table>
           </div>
           <div style={{ display: 'flex', gap: '10px' }}>
-            <Btn onClick={() => onImport(preview)}>Import {preview.length} Test Cases</Btn>
-            <Btn v="ghost" onClick={() => setPreview([])}>Clear</Btn>
-            <Btn v="ghost" onClick={onClose}>Cancel</Btn>
+            <Btn onClick={() => onImport(preview)} disabled={isImporting}>{isImporting ? 'Importing…' : `Import ${preview.length} Test Cases`}</Btn>
+            <Btn v="ghost" onClick={() => setPreview([])} disabled={isImporting}>Clear</Btn>
+            <Btn v="ghost" onClick={onClose} disabled={isImporting}>Cancel</Btn>
           </div>
         </div>
       )}
@@ -873,9 +876,14 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
   const [credsLoaded, setCredsLoaded] = useState(false);
   const [showCredForm, setShowCredForm] = useState(false);
   const [credForm, setCredForm] = useState({ user_role: '', username: '', password: '', url: '', notes: '' });
+  const [showAddCredPassword, setShowAddCredPassword] = useState(false);
   const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [credPending, setCredPending] = useState(false);
+  const [editingCredId, setEditingCredId] = useState<string | null>(null);
+  const [editCredForm, setEditCredForm] = useState({ user_role: '', username: '', password: '', url: '', notes: '' });
+  const [showEditCredPassword, setShowEditCredPassword] = useState(false);
+  const [editCredPending, setEditCredPending] = useState(false);
 
   // Project details editing
   const [editingDetails, setEditingDetails] = useState(false);
@@ -1191,8 +1199,9 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
     onError: () => toast.error('Upload failed'),
   });
 
-  const exportTestCases = (format: 'csv' | 'xlsx') => {
-    const rows = (testCases as any[]).map((t: any) => {
+  const exportTestCases = async (format: 'csv' | 'xlsx' | 'pdf' | 'docx' | 'zip') => {
+    const tcList = testCases as any[];
+    const rows = tcList.map((t: any) => {
       const steps = Array.isArray(t.steps)
         ? t.steps.map((s: any, i: number) => `${i + 1}. ${typeof s === 'object' ? (s.action || s) : s}`).join('\n')
         : (t.steps || '');
@@ -1212,20 +1221,93 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
       };
     });
     const fileName = `${project.project_code}_test_cases`;
+
     if (format === 'csv') {
       const csv = Papa.unparse(rows);
       saveAs(new Blob([csv], { type: 'text/csv;charset=utf-8;' }), `${fileName}.csv`);
-    } else {
+    } else if (format === 'xlsx') {
       const ws = XLSX.utils.json_to_sheet(rows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Test Cases');
       XLSX.writeFile(wb, `${fileName}.xlsx`);
+    } else if (format === 'pdf') {
+      const doc = new jsPDF({ orientation: 'landscape' });
+      const pw = doc.internal.pageSize.getWidth();
+      doc.setFillColor(124, 106, 247);
+      doc.rect(0, 0, pw, 12, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('O2H TECHNOLOGY — QUALITY ANALYSIS', 14, 8);
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(20);
+      doc.text('TEST CASE REPORT', 14, 25);
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 100, 100);
+      doc.text(`${project.name} (${project.project_code})  —  Generated: ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}`, 14, 33);
+      doc.setDrawColor(124, 106, 247);
+      doc.line(14, 37, pw - 14, 37);
+      const stats = [`Total: ${tcList.length}`, `Pass: ${tcList.filter((t: any) => t.test_result === 'Pass').length}`, `Fail: ${tcList.filter((t: any) => t.test_result === 'Fail').length}`, `Not Executed: ${tcList.filter((t: any) => t.execution_status === 'Not Executed').length}`];
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 0, 0);
+      doc.text('OVERVIEW', 14, 47);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      stats.forEach((s, i) => doc.text(s, 14 + i * 55, 54));
+      autoTable(doc, {
+        startY: 62,
+        head: [['TC ID', 'Module', 'Summary', 'Priority', 'Labels', 'Platform', 'Exec Status', 'Result']],
+        body: tcList.map((t: any) => [t.test_case_id, t.module, t.summary, t.priority || '', Array.isArray(t.labels) ? t.labels.join(', ') : (t.labels || ''), t.platform || '', t.execution_status || '', t.test_result || '']),
+        headStyles: { fillColor: [124, 106, 247], textColor: 255, fontStyle: 'bold', fontSize: 9 },
+        bodyStyles: { fontSize: 9 },
+        alternateRowStyles: { fillColor: [248, 248, 255] },
+        columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: 28 }, 2: { cellWidth: 80 }, 3: { cellWidth: 20 }, 4: { cellWidth: 28 }, 5: { cellWidth: 22 }, 6: { cellWidth: 28 }, 7: { cellWidth: 22 } },
+        margin: { left: 14, right: 14 },
+      });
+      const ph = doc.internal.pageSize.getHeight();
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text(`Generated on ${new Date().toLocaleDateString()} — O2H Technology Quality Analysis`, 14, ph - 10);
+      doc.save(`${fileName}.pdf`);
+    } else if (format === 'docx') {
+      const headers = Object.keys(rows[0] || {});
+      const headerRow = new DocxTableRow({
+        children: headers.map(h => new DocxTableCell({ children: [new DocxParagraph({ children: [new DocxTextRun({ text: h, bold: true })] })] })),
+        tableHeader: true,
+      });
+      const bodyRows = rows.map((r: any) => new DocxTableRow({
+        children: Object.values(r).map((v: any) => new DocxTableCell({ children: [new DocxParagraph({ children: [new DocxTextRun({ text: String(v || '') })] })] })),
+      }));
+      const table = new DocxTable({ rows: [headerRow, ...bodyRows], width: { size: 100, type: DocxWidthType.PERCENTAGE } });
+      const doc = new DocxDocument({
+        sections: [{ children: [
+          new DocxParagraph({ children: [new DocxTextRun({ text: `Test Cases — ${project.name} (${project.project_code})`, bold: true, size: 28 })] }),
+          new DocxParagraph({ children: [new DocxTextRun({ text: `Generated: ${new Date().toLocaleDateString('en-GB')}` })] }),
+          new DocxParagraph({ text: '' }),
+          table,
+        ]}],
+      });
+      const blob = await DocxPacker.toBlob(doc);
+      saveAs(blob, `${fileName}.docx`);
+    } else if (format === 'zip') {
+      const zip = new JSZip();
+      const csv = Papa.unparse(rows);
+      zip.file(`${fileName}.csv`, csv);
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Test Cases');
+      zip.file(`${fileName}.xlsx`, new Uint8Array(XLSX.write(wb, { type: 'array', bookType: 'xlsx' })));
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      saveAs(zipBlob, `${fileName}.zip`);
     }
     setShowExportMenu(false);
   };
 
-  const exportBugs = (format: 'csv' | 'xlsx') => {
-    const rows = (bugs as any[]).map((b: any) => ({
+  const exportBugs = async (format: 'csv' | 'xlsx' | 'docx' | 'zip') => {
+    const bugList = bugs as any[];
+    const rows = bugList.map((b: any) => ({
       'Sl No': b.sl_no,
       'Module': b.module,
       'Summary': b.summary,
@@ -1240,23 +1322,54 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
       'Created At': new Date(b.created_at).toLocaleDateString(),
     }));
     const fileName = `${project.project_code}_bugs`;
+    const colWidths = [{ wch: 8 }, { wch: 20 }, { wch: 40 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 40 }, { wch: 15 }, { wch: 40 }, { wch: 40 }, { wch: 15 }];
+
     if (format === 'csv') {
       const csv = Papa.unparse(rows);
       saveAs(new Blob([csv], { type: 'text/csv;charset=utf-8;' }), `${fileName}.csv`);
-    } else {
+    } else if (format === 'xlsx') {
       const ws = XLSX.utils.json_to_sheet(rows);
-      ws['!cols'] = [
-        { wch: 8 }, { wch: 20 }, { wch: 40 }, { wch: 20 }, { wch: 20 },
-        { wch: 20 }, { wch: 15 }, { wch: 40 }, { wch: 15 }, { wch: 40 }, { wch: 40 }, { wch: 15 },
-      ];
+      ws['!cols'] = colWidths;
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Bugs');
       XLSX.writeFile(wb, `${fileName}.xlsx`);
+    } else if (format === 'docx') {
+      const headers = Object.keys(rows[0] || {});
+      const headerRow = new DocxTableRow({
+        children: headers.map(h => new DocxTableCell({ children: [new DocxParagraph({ children: [new DocxTextRun({ text: h, bold: true })] })] })),
+        tableHeader: true,
+      });
+      const bodyRows = rows.map((r: any) => new DocxTableRow({
+        children: Object.values(r).map((v: any) => new DocxTableCell({ children: [new DocxParagraph({ children: [new DocxTextRun({ text: String(v || '') })] })] })),
+      }));
+      const table = new DocxTable({ rows: [headerRow, ...bodyRows], width: { size: 100, type: DocxWidthType.PERCENTAGE } });
+      const doc = new DocxDocument({
+        sections: [{ children: [
+          new DocxParagraph({ children: [new DocxTextRun({ text: `Bug Report — ${project.name} (${project.project_code})`, bold: true, size: 28 })] }),
+          new DocxParagraph({ children: [new DocxTextRun({ text: `Generated: ${new Date().toLocaleDateString('en-GB')}` })] }),
+          new DocxParagraph({ text: '' }),
+          table,
+        ]}],
+      });
+      const blob = await DocxPacker.toBlob(doc);
+      saveAs(blob, `${fileName}.docx`);
+    } else if (format === 'zip') {
+      const zip = new JSZip();
+      const csv = Papa.unparse(rows);
+      zip.file(`${fileName}.csv`, csv);
+      const ws = XLSX.utils.json_to_sheet(rows);
+      ws['!cols'] = colWidths;
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Bugs');
+      zip.file(`${fileName}.xlsx`, new Uint8Array(XLSX.write(wb, { type: 'array', bookType: 'xlsx' })));
+      zip.file(`${project.project_code}_Bug_Report.pdf`, buildBugReportDoc(bugList).output('arraybuffer'));
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      saveAs(zipBlob, `${fileName}.zip`);
     }
     setShowBugExportMenu(false);
   };
 
-  const exportProjectBugReportPDF = () => {
+  const buildBugReportDoc = (bugList: any[]) => {
     const doc = new jsPDF({ orientation: 'landscape' });
     const pw = doc.internal.pageSize.getWidth();
     let y = 20;
@@ -1284,7 +1397,6 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
     doc.line(14, y, pw - 14, y);
 
     y += 10;
-    const bugList = bugs as any[];
     const stats = [
       `Total: ${bugList.length}`,
       `Open: ${bugList.filter((b: any) => b.status === 'Open').length}`,
@@ -1331,7 +1443,11 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
     doc.setTextColor(150, 150, 150);
     doc.text(`Generated on ${new Date().toLocaleDateString()} — O2H Technology Quality Analysis`, 14, ph - 10);
 
-    doc.save(`${project.project_code}_Bug_Report.pdf`);
+    return doc;
+  };
+
+  const exportProjectBugReportPDF = () => {
+    buildBugReportDoc(bugs as any[]).save(`${project.project_code}_Bug_Report.pdf`);
     setShowBugExportMenu(false);
   };
 
@@ -1596,14 +1712,16 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
               )}
               {canEdit && (
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <input
-                    value={newDevName}
-                    onChange={e => setNewDevName(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter' && newDevName.trim()) rosterMut.mutate({ name: newDevName.trim(), action: 'add' }); }}
-                    placeholder="Developer name…"
-                    style={{ flex: 1, maxWidth: '260px', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '8px 12px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }}
-                  />
-                  <Btn sm v="primary" onClick={() => { if (newDevName.trim()) rosterMut.mutate({ name: newDevName.trim(), action: 'add' }); }} disabled={rosterMut.isPending || !newDevName.trim()}>＋ Add</Btn>
+                  <div style={{ flex: 1, maxWidth: '260px' }}>
+                    <TypeSearch
+                      value={newDevName}
+                      onChange={v => setNewDevName(v)}
+                      type="all"
+                      placeholder="Search developer name…"
+                      allowCustom={false}
+                    />
+                  </div>
+                  <Btn sm v="primary" onClick={() => { if (newDevName.trim()) { rosterMut.mutate({ name: newDevName.trim(), action: 'add' }); } }} disabled={rosterMut.isPending || !newDevName.trim()}>＋ Add</Btn>
                 </div>
               )}
             </GCard>
@@ -1622,12 +1740,14 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                     <div style={{ flex: 1, minWidth: '140px' }}>
                       <div style={{ fontSize: '9.5px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>Start Date</div>
                       <input type="date" value={detailStartDate} onChange={e => setDetailStartDate(e.target.value)}
-                        style={{ width: '100%', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '7px 10px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }} />
+                        onClick={e => { try { (e.target as HTMLInputElement).showPicker?.(); } catch {} }}
+                        style={{ width: '100%', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '7px 10px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none', cursor: 'pointer' }} />
                     </div>
                     <div style={{ flex: 1, minWidth: '140px' }}>
                       <div style={{ fontSize: '9.5px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>End Date</div>
                       <input type="date" value={detailEndDate} onChange={e => setDetailEndDate(e.target.value)}
-                        style={{ width: '100%', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '7px 10px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }} />
+                        onClick={e => { try { (e.target as HTMLInputElement).showPicker?.(); } catch {} }}
+                        style={{ width: '100%', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '7px 10px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none', cursor: 'pointer' }} />
                     </div>
                   </div>
                   <div>
@@ -1725,8 +1845,14 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                 <div ref={exportMenuRef} style={{ position: 'relative' }}>
                   <Btn sm v="ghost" onClick={() => setShowExportMenu(v => !v)}>Export ▾</Btn>
                   {showExportMenu && (
-                    <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 50, background: 'var(--qa-modal)', border: `1px solid ${C.border}`, borderRadius: '10px', padding: '6px', minWidth: '140px' }}>
-                      {[{ label: 'CSV', fmt: 'csv' as const }, { label: 'Excel (.xlsx)', fmt: 'xlsx' as const }].map(opt => (
+                    <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 50, background: 'var(--qa-modal)', border: `1px solid ${C.border}`, borderRadius: '10px', padding: '6px', minWidth: '165px' }}>
+                      {([
+                        { label: 'CSV', fmt: 'csv' as const },
+                        { label: 'Excel (.xlsx)', fmt: 'xlsx' as const },
+                        { label: 'PDF', fmt: 'pdf' as const },
+                        { label: 'Word (.docx)', fmt: 'docx' as const },
+                        { label: 'ZIP (CSV + Excel)', fmt: 'zip' as const },
+                      ] as const).map(opt => (
                         <div key={opt.fmt} onClick={() => exportTestCases(opt.fmt)}
                           style={{ padding: '8px 14px', fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", cursor: 'pointer', color: C.text, borderRadius: '6px' }}
                           onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)'; }}
@@ -1917,8 +2043,13 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                   <div ref={bugExportMenuRef} style={{ position: 'relative' }}>
                     <Btn sm v="ghost" onClick={() => setShowBugExportMenu(v => !v)}>Export ▾</Btn>
                     {showBugExportMenu && (
-                      <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 50, background: 'var(--qa-modal)', border: `1px solid ${C.border}`, borderRadius: '10px', padding: '6px', minWidth: '140px' }}>
-                        {[{ label: 'CSV', fmt: 'csv' as const }, { label: 'Excel (.xlsx)', fmt: 'xlsx' as const }].map(opt => (
+                      <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 50, background: 'var(--qa-modal)', border: `1px solid ${C.border}`, borderRadius: '10px', padding: '6px', minWidth: '185px' }}>
+                        {([
+                          { label: 'CSV', fmt: 'csv' as const },
+                          { label: 'Excel (.xlsx)', fmt: 'xlsx' as const },
+                          { label: 'Word (.docx)', fmt: 'docx' as const },
+                          { label: 'ZIP (CSV + Excel + PDF)', fmt: 'zip' as const },
+                        ] as const).map(opt => (
                           <div key={opt.fmt} onClick={() => exportBugs(opt.fmt)}
                             style={{ padding: '8px 14px', fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", cursor: 'pointer', color: C.text, borderRadius: '6px' }}
                             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)'; }}
@@ -1926,6 +2057,7 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                             {opt.label}
                           </div>
                         ))}
+                        <div style={{ borderTop: `1px solid ${C.border}`, margin: '4px 0' }} />
                         <div onClick={exportProjectBugReportPDF}
                           style={{ padding: '8px 14px', fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", cursor: 'pointer', color: C.text, borderRadius: '6px' }}
                           onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)'; }}
@@ -2266,24 +2398,34 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                   <div style={{ fontFamily: "var(--font-heading, 'Montserrat', sans-serif)", fontSize: '13px', fontWeight: 600, color: C.text, marginBottom: '16px' }}>Add New Credential</div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                     <div><label style={lblStyle}>User Role *</label><input value={credForm.user_role} onChange={e => setCredForm(f => ({ ...f, user_role: e.target.value }))} placeholder="e.g. Admin, Customer, Guest…" style={inStyle} /></div>
-                    <div><label style={lblStyle}>Username *</label><input value={credForm.username} onChange={e => setCredForm(f => ({ ...f, username: e.target.value }))} placeholder="Enter username" style={inStyle} /></div>
-                    <div><label style={lblStyle}>Password *</label><input type="password" value={credForm.password} onChange={e => setCredForm(f => ({ ...f, password: e.target.value }))} placeholder="Enter password" style={inStyle} /></div>
-                    <div><label style={lblStyle}>URL</label><input value={credForm.url} onChange={e => setCredForm(f => ({ ...f, url: e.target.value }))} placeholder="https://…" style={inStyle} /></div>
+                    <div><label style={lblStyle}>Username</label><input value={credForm.username} onChange={e => setCredForm(f => ({ ...f, username: e.target.value }))} placeholder="Enter username" style={inStyle} /></div>
+                    <div>
+                      <label style={lblStyle}>Password</label>
+                      <div style={{ position: 'relative' }}>
+                        <input type={showAddCredPassword ? 'text' : 'password'} value={credForm.password} onChange={e => setCredForm(f => ({ ...f, password: e.target.value }))} placeholder="Enter password" style={{ ...inStyle, paddingRight: '34px' }} />
+                        <button type="button" onClick={() => setShowAddCredPassword(v => !v)}
+                          style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--qa-text-mid)', display: 'flex', alignItems: 'center', padding: 0 }}>
+                          {showAddCredPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                        </button>
+                      </div>
+                    </div>
+                    <div><label style={lblStyle}>URL</label><input value={credForm.url} onChange={e => setCredForm(f => ({ ...f, url: e.target.value }))} placeholder="https://www.exampleapplication.com" style={inStyle} /></div>
                     <div style={{ gridColumn: 'span 2' }}><label style={lblStyle}>Notes</label><input value={credForm.notes} onChange={e => setCredForm(f => ({ ...f, notes: e.target.value }))} placeholder="Any additional notes…" style={inStyle} /></div>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', marginTop: '16px', justifyContent: 'flex-end' }}>
-                    <button onClick={() => { setShowCredForm(false); setCredForm({ user_role: '', username: '', password: '', url: '', notes: '' }); }}
+                    <button onClick={() => { setShowCredForm(false); setCredForm({ user_role: '', username: '', password: '', url: '', notes: '' }); setShowAddCredPassword(false); }}
                       style={{ padding: '7px 14px', background: 'none', border: `1px solid ${C.border}`, borderRadius: '7px', color: 'var(--qa-text-mid)', cursor: 'pointer', fontFamily: "var(--font-body, 'Manrope', sans-serif)", fontSize: '12px' }}>Cancel</button>
                     <button
-                      disabled={credPending || !credForm.user_role || !credForm.username || !credForm.password}
+                      disabled={credPending || !credForm.user_role}
                       onClick={async () => {
-                        if (!credForm.user_role || !credForm.username || !credForm.password) return;
+                        if (!credForm.user_role) return;
                         setCredPending(true);
                         try {
                           const newCred = await addCredential(project.id, credForm);
                           setCreds(prev => [...prev, newCred]);
                           setShowCredForm(false);
                           setCredForm({ user_role: '', username: '', password: '', url: '', notes: '' });
+                          setShowAddCredPassword(false);
                           toast.success('Credential added');
                         } catch { toast.error('Failed to add credential'); }
                         finally { setCredPending(false); }
@@ -2313,61 +2455,113 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                       {copiedId === id ? <Check size={13} /> : <Copy size={13} />}
                     </button>
                   );
+                  const isEditing = editingCredId === cred.id;
+                  const inStyle: React.CSSProperties = { width: '100%', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '7px', padding: '7px 10px', fontFamily: "var(--font-body, 'Manrope', sans-serif)", fontSize: '12px', color: C.text, outline: 'none', boxSizing: 'border-box' };
+                  const eLblStyle: React.CSSProperties = { display: 'block', fontSize: '10px', color: 'var(--qa-text-mid)', marginBottom: '4px', fontFamily: "var(--font-body, 'Manrope', sans-serif)", fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' };
                   return (
-                    <div key={cred.id} style={{ background: 'var(--qa-card)', border: `1px solid ${C.border}`, borderRadius: '10px', padding: '16px 18px' }}>
+                    <div key={cred.id} style={{ background: 'var(--qa-card)', border: `1px solid ${isEditing ? 'rgba(59,130,246,0.4)' : C.border}`, borderRadius: '10px', padding: '16px 18px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                         <span style={{ padding: '3px 10px', borderRadius: '999px', background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.25)', color: 'var(--qa-accent)', fontSize: '11px', fontWeight: 600, fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>{cred.user_role}</span>
-                        {canEdit && (
-                          <button onClick={async () => {
-                            if (!window.confirm('Delete this credential?')) return;
-                            try { await deleteCredential(project.id, cred.id); setCreds(prev => prev.filter((c: any) => c.id !== cred.id)); toast.success('Deleted'); } catch { toast.error('Failed'); }
-                          }}
-                            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(239,68,68,0.3)'; (e.currentTarget as HTMLButtonElement).style.color = C.red; }}
-                            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.border; (e.currentTarget as HTMLButtonElement).style.color = 'var(--qa-text-mid)'; }}
-                            style={{ padding: '5px', background: 'none', border: `1px solid ${C.border}`, borderRadius: '6px', cursor: 'pointer', color: 'var(--qa-text-mid)', display: 'flex', alignItems: 'center', transition: 'all 0.15s' }}>
-                            <Trash2 size={13} />
-                          </button>
+                        {canEdit && !isEditing && (
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <button onClick={() => { setEditingCredId(cred.id); setEditCredForm({ user_role: cred.user_role, username: cred.username || '', password: cred.password || '', url: cred.url || '', notes: cred.notes || '' }); setShowEditCredPassword(false); }}
+                              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(59,130,246,0.3)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--qa-accent)'; }}
+                              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.border; (e.currentTarget as HTMLButtonElement).style.color = 'var(--qa-text-mid)'; }}
+                              style={{ padding: '5px', background: 'none', border: `1px solid ${C.border}`, borderRadius: '6px', cursor: 'pointer', color: 'var(--qa-text-mid)', display: 'flex', alignItems: 'center', transition: 'all 0.15s' }}>
+                              <Pencil size={13} />
+                            </button>
+                            <button onClick={async () => {
+                              if (!window.confirm('Delete this credential?')) return;
+                              try { await deleteCredential(project.id, cred.id); setCreds(prev => prev.filter((c: any) => c.id !== cred.id)); toast.success('Deleted'); } catch { toast.error('Failed'); }
+                            }}
+                              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(239,68,68,0.3)'; (e.currentTarget as HTMLButtonElement).style.color = C.red; }}
+                              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.border; (e.currentTarget as HTMLButtonElement).style.color = 'var(--qa-text-mid)'; }}
+                              style={{ padding: '5px', background: 'none', border: `1px solid ${C.border}`, borderRadius: '6px', cursor: 'pointer', color: 'var(--qa-text-mid)', display: 'flex', alignItems: 'center', transition: 'all 0.15s' }}>
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
                         )}
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                        <div style={fieldBox}>
-                          <div style={fieldLbl}>Username</div>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                            <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '12px', color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cred.username}</span>
-                            {copyBtn(cred.username, `u-${cred.id}`)}
-                          </div>
-                        </div>
-                        <div style={fieldBox}>
-                          <div style={fieldLbl}>Password</div>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                            <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '12px', color: C.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {visiblePasswords.has(cred.id) ? cred.password : '••••••••'}
-                            </span>
-                            <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
-                              <button onClick={() => togglePassword(cred.id)} title={visiblePasswords.has(cred.id) ? 'Hide' : 'Show'}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--qa-text-mid)', padding: '2px', display: 'flex', alignItems: 'center' }}>
-                                {visiblePasswords.has(cred.id) ? <EyeOff size={13} /> : <Eye size={13} />}
-                              </button>
-                              {copyBtn(cred.password, `p-${cred.id}`)}
+                      {isEditing ? (
+                        <div>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+                            <div><label style={eLblStyle}>User Role *</label><input value={editCredForm.user_role} onChange={e => setEditCredForm(f => ({ ...f, user_role: e.target.value }))} placeholder="e.g. Admin, Customer…" style={inStyle} /></div>
+                            <div><label style={eLblStyle}>Username</label><input value={editCredForm.username} onChange={e => setEditCredForm(f => ({ ...f, username: e.target.value }))} placeholder="Enter username" style={inStyle} /></div>
+                            <div>
+                              <label style={eLblStyle}>Password</label>
+                              <div style={{ position: 'relative' }}>
+                                <input type={showEditCredPassword ? 'text' : 'password'} value={editCredForm.password} onChange={e => setEditCredForm(f => ({ ...f, password: e.target.value }))} placeholder="Enter password" style={{ ...inStyle, paddingRight: '34px' }} />
+                                <button type="button" onClick={() => setShowEditCredPassword(v => !v)}
+                                  style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--qa-text-mid)', display: 'flex', alignItems: 'center', padding: 0 }}>
+                                  {showEditCredPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                                </button>
+                              </div>
                             </div>
+                            <div><label style={eLblStyle}>URL</label><input value={editCredForm.url} onChange={e => setEditCredForm(f => ({ ...f, url: e.target.value }))} placeholder="https://www.exampleapplication.com" style={inStyle} /></div>
+                            <div style={{ gridColumn: 'span 2' }}><label style={eLblStyle}>Notes</label><input value={editCredForm.notes} onChange={e => setEditCredForm(f => ({ ...f, notes: e.target.value }))} placeholder="Any additional notes…" style={inStyle} /></div>
+                          </div>
+                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                            <button onClick={() => { setEditingCredId(null); }} style={{ padding: '6px 12px', background: 'none', border: `1px solid ${C.border}`, borderRadius: '7px', color: 'var(--qa-text-mid)', cursor: 'pointer', fontFamily: "var(--font-body, 'Manrope', sans-serif)", fontSize: '12px' }}>Cancel</button>
+                            <button disabled={editCredPending || !editCredForm.user_role}
+                              onClick={async () => {
+                                if (!editCredForm.user_role) return;
+                                setEditCredPending(true);
+                                try {
+                                  const updated = await updateCredential(project.id, cred.id, editCredForm);
+                                  setCreds(prev => prev.map((c: any) => c.id === cred.id ? updated : c));
+                                  setEditingCredId(null);
+                                  toast.success('Credential updated');
+                                } catch { toast.error('Failed to update credential'); }
+                                finally { setEditCredPending(false); }
+                              }}
+                              style={{ padding: '6px 14px', background: editCredPending ? 'rgba(59,130,246,0.5)' : 'var(--qa-accent)', color: '#fff', border: 'none', borderRadius: '7px', fontFamily: "var(--font-heading, 'Montserrat', sans-serif)", fontWeight: 600, fontSize: '12px', cursor: editCredPending ? 'not-allowed' : 'pointer' }}>
+                              {editCredPending ? 'Saving…' : 'Save Changes'}
+                            </button>
                           </div>
                         </div>
-                        {cred.url && (
-                          <div style={{ ...fieldBox, gridColumn: 'span 2' }}>
-                            <div style={fieldLbl}>URL</div>
+                      ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                          <div style={fieldBox}>
+                            <div style={fieldLbl}>Username</div>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                              <a href={cred.url} target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '12px', color: 'var(--qa-accent)', textDecoration: 'underline', textUnderlineOffset: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cred.url}</a>
-                              {copyBtn(cred.url, `url-${cred.id}`)}
+                              <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '12px', color: cred.username ? C.text : C.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cred.username || '—'}</span>
+                              {cred.username && copyBtn(cred.username, `u-${cred.id}`)}
                             </div>
                           </div>
-                        )}
-                        {cred.notes && (
-                          <div style={{ ...fieldBox, gridColumn: 'span 2' }}>
-                            <div style={fieldLbl}>Notes</div>
-                            <p style={{ fontFamily: "var(--font-body, 'Manrope', sans-serif)", fontSize: '12px', color: C.text, lineHeight: 1.5, margin: 0 }}>{cred.notes}</p>
+                          <div style={fieldBox}>
+                            <div style={fieldLbl}>Password</div>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                              <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '12px', color: cred.password ? C.text : C.textDim, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {cred.password ? (visiblePasswords.has(cred.id) ? cred.password : '••••••••') : '—'}
+                              </span>
+                              {cred.password && (
+                                <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+                                  <button onClick={() => togglePassword(cred.id)} title={visiblePasswords.has(cred.id) ? 'Hide' : 'Show'}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--qa-text-mid)', padding: '2px', display: 'flex', alignItems: 'center' }}>
+                                    {visiblePasswords.has(cred.id) ? <EyeOff size={13} /> : <Eye size={13} />}
+                                  </button>
+                                  {copyBtn(cred.password, `p-${cred.id}`)}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        )}
-                      </div>
+                          {cred.url && (
+                            <div style={{ ...fieldBox, gridColumn: 'span 2' }}>
+                              <div style={fieldLbl}>URL</div>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                                <a href={cred.url} target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '12px', color: 'var(--qa-accent)', textDecoration: 'underline', textUnderlineOffset: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cred.url}</a>
+                                {copyBtn(cred.url, `url-${cred.id}`)}
+                              </div>
+                            </div>
+                          )}
+                          {cred.notes && (
+                            <div style={{ ...fieldBox, gridColumn: 'span 2' }}>
+                              <div style={fieldLbl}>Notes</div>
+                              <p style={{ fontFamily: "var(--font-body, 'Manrope', sans-serif)", fontSize: '12px', color: C.text, lineHeight: 1.5, margin: 0 }}>{cred.notes}</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -2483,6 +2677,7 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
           projectCode={project.project_code}
           onClose={() => { setShowImport(false); setShowAddChoice(false); }}
           onImport={(rows) => bulkImportMut.mutate(rows)}
+          isImporting={bulkImportMut.isPending}
         />
       )}
 

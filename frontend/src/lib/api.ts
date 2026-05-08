@@ -106,6 +106,7 @@ export const uploadZip = (data: { project_id: string; zip_name: string; zip_size
 // ── Credentials ───────────────────────────────────────────────
 export const getCredentials = (projectId: string) => api.get(`/projects/${projectId}/credentials`).then(r => r.data);
 export const addCredential = (projectId: string, data: any) => api.post(`/projects/${projectId}/credentials`, data).then(r => r.data);
+export const updateCredential = (projectId: string, credId: string, data: any) => api.patch(`/projects/${projectId}/credentials/${credId}`, data).then(r => r.data);
 export const deleteCredential = (projectId: string, credId: string) => api.delete(`/projects/${projectId}/credentials/${credId}`).then(r => r.data);
 
 // ── Documents ─────────────────────────────────────────────────
