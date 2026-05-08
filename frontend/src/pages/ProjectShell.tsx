@@ -158,12 +158,24 @@ function BugExpandedRow({ bug, user, onClose, projectId, readOnly, roster, proje
   const [assignee, setAssignee] = useState(bug.assignee || '');
   const [developedBy, setDevelopedBy] = useState(bug.developed_by || '');
   const [priority, setPriority] = useState(bug.priority || 'Medium');
+  const [bugModule, setBugModule] = useState(bug.module || '');
+  const [bugSummary, setBugSummary] = useState(bug.summary || '');
+  const [bugStatus, setBugStatus] = useState(bug.status || 'Open');
+  const [savedField, setSavedField] = useState<string | null>(null);
   const [resourceUrl, setResourceUrl] = useState('');
   const [resourceLabel, setResourceLabel] = useState('');
   const [proofResource, setProofResource] = useState<any>(null);
 
   const isQA = ['admin', 'qa_lead', 'qa_engineer'].includes(user.role);
   const isDev = user.role === 'developer';
+
+  const showSaved = (field: string) => { setSavedField(field); setTimeout(() => setSavedField(null), 2000); };
+
+  const autoSaveBug = (field: string, value: any) => {
+    updateBug(bug.id, { [field]: value })
+      .then(() => { qc.invalidateQueries({ queryKey: ['bugs', projectId] }); showSaved(field); })
+      .catch(() => toast.error('Failed to save'));
+  };
 
   const rosterAddMut = useMutation({
     mutationFn: (name: string) => updateRoster(projectId, { name, action: 'add' }),
@@ -212,6 +224,32 @@ function BugExpandedRow({ bug, user, onClose, projectId, readOnly, roster, proje
               {bug.developer_comment && <Chip text="💬 Dev" color={C.purple} sm />}
               {bug.qa_comment && <Chip text="💬 QA" color={C.accent} sm />}
               {bug.ba_comment && <Chip text="💬 BA" color={C.pink} sm />}
+            </div>
+          )}
+
+          {/* Module + Summary + Status inline edit */}
+          {isQA && !readOnly && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 20px', marginBottom: '12px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '700', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.07em', textTransform: 'uppercase', marginBottom: '5px' }}>
+                  Module {savedField === 'module' && <span style={{ color: C.green }}>Saved ✓</span>}
+                </div>
+                <input value={bugModule} onChange={e => setBugModule(e.target.value)} onBlur={e => autoSaveBug('module', e.target.value)} style={{ width: '100%', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '7px 10px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none', boxSizing: 'border-box' }} placeholder="Module name" />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '700', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.07em', textTransform: 'uppercase', marginBottom: '5px' }}>
+                  Bug Status {savedField === 'status' && <span style={{ color: C.green }}>Saved ✓</span>}
+                </div>
+                <select value={bugStatus} onChange={e => { setBugStatus(e.target.value); autoSaveBug('status', e.target.value); }} style={{ width: '100%', background: 'var(--qa-select-bg)', border: `1px solid ${STATUS_COLORS[bugStatus] || C.border}`, borderRadius: '8px', padding: '7px 10px', color: STATUS_COLORS[bugStatus] || C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none', cursor: 'pointer' }}>
+                  {['Open','In Progress','Fixed (To Test)','Closed',"Won't Fix (Invalid)"].map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div style={{ gridColumn: '1/-1' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '700', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.07em', textTransform: 'uppercase', marginBottom: '5px' }}>
+                  Summary {savedField === 'summary' && <span style={{ color: C.green }}>Saved ✓</span>}
+                </div>
+                <textarea value={bugSummary} onChange={e => setBugSummary(e.target.value)} onBlur={e => autoSaveBug('summary', e.target.value)} rows={2} style={{ width: '100%', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '7px 10px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none', resize: 'vertical', boxSizing: 'border-box' }} placeholder="Bug summary" />
+              </div>
             </div>
           )}
 
@@ -342,13 +380,44 @@ function TCExpandedRow({ tc, user, onClose, projectId, readOnly }: { tc: any; us
   const [testResult, setTestResult] = useState(tc.test_result);
   const [actualResult, setActualResult] = useState(tc.actual_result || '');
   const actualResultTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [savedField, setSavedField] = useState<string | null>(null);
+
+  // Editable fields state
+  const initStepsText = Array.isArray(tc.steps) ? tc.steps.map((s: any, i: number) => typeof s === 'object' ? `${i + 1}. ${s.action || s}` : `${i + 1}. ${s}`).join('\n') : tc.steps || '';
+  const [tcModule, setTcModule] = useState(tc.module || '');
+  const [tcSummary, setTcSummary] = useState(tc.summary || '');
+  const [tcPriority, setTcPriority] = useState(tc.priority || 'Medium');
+  const [tcPlatform, setTcPlatform] = useState(tc.platform || 'Web');
+  const [tcLabels, setTcLabels] = useState<string[]>(tc.labels || []);
+  const [tcPreconditions, setTcPreconditions] = useState(tc.preconditions || '');
+  const [tcStepsText, setTcStepsText] = useState(initStepsText);
+  const [tcExpected, setTcExpected] = useState(tc.expected_result || '');
 
   const { data: comments = [] } = useQuery({ queryKey: ['comments', tc.id], queryFn: () => getComments('test_case', tc.id) });
+  const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: getSettings });
+  const labelOptions: string[] = (settings?.label || []).map((s: any) => s.value);
+  const platformOptions: string[] = (settings?.platform || []).map((s: any) => s.value).filter(Boolean);
+  const effectivePlatforms = platformOptions.length > 0 ? platformOptions : ['Web', 'Android', 'iOS', 'Both'];
+
   const isQA = ['admin', 'qa_lead', 'qa_engineer'].includes(user.role);
+  const canEditFields = isQA && !readOnly;
+
+  const showSaved = (field: string) => { setSavedField(field); setTimeout(() => setSavedField(null), 2000); };
+
+  const autoSave = (field: string, value: any) => {
+    updateTestCase(tc.id, { [field]: value })
+      .then(() => { qc.invalidateQueries({ queryKey: ['testcases', projectId] }); showSaved(field); })
+      .catch(() => toast.error('Failed to save'));
+  };
+
+  const autoSaveSteps = (raw: string) => {
+    const steps = raw.split('\n').map(s => s.trim()).filter(Boolean).map(s => s.replace(/^\d+\.\s*/, ''));
+    autoSave('steps', steps);
+  };
 
   const updateMut = useMutation({
     mutationFn: (data: any) => updateTestCase(tc.id, data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['testcases', projectId] }); toast.success('Test case updated'); onClose(); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['testcases', projectId] }); showSaved('status'); },
   });
 
   const commentMut = useMutation({
@@ -361,47 +430,99 @@ function TCExpandedRow({ tc, user, onClose, projectId, readOnly }: { tc: any; us
     commentMut.mutate({ entity_type: 'test_case', entity_id: tc.id, author_name: user.name, author_type: user.role === 'developer' ? 'developer' : 'qa', author_id: user.id || null, body: comment });
   };
 
-  const stepsText = Array.isArray(tc.steps) ? tc.steps.map((s: any, i: number) => typeof s === 'object' ? `${i + 1}. ${s.action || s}` : `${i + 1}. ${s}`).join('\n') : tc.steps || '';
+  const inStyle: React.CSSProperties = { width: '100%', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '7px 10px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none', boxSizing: 'border-box' };
+  const lblStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '700', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '5px' };
 
   return (
     <tr>
       <td colSpan={10} style={{ padding: 0 }}>
         <div style={{ padding: '16px 20px', background: 'rgba(59,130,246,0.03)', borderTop: '1px solid rgba(59,130,246,0.1)', borderBottom: `1px solid ${C.border}` }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px 20px', marginBottom: '14px' }}>
-            <div style={{ gridColumn: '1/-1', padding: '12px 16px', background: 'rgba(255,255,255,.02)', border: `1px solid ${C.border}`, borderRadius: '9px' }}>
-              <div style={{ fontSize: '10px', fontWeight: '700', color: C.textDim, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '8px' }}>STEPS</div>
-              <div style={{ color: C.text, fontSize: '12px', lineHeight: '1.9', whiteSpace: 'pre-wrap' }}>{stepsText || tc.preconditions || '—'}</div>
-              {tc.expected_result && (
-                <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: `1px solid ${C.border}` }}>
-                  <div style={{ fontSize: '10px', fontWeight: '700', color: C.textDim, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '6px' }}>EXPECTED RESULT</div>
-                  <div style={{ color: C.green, fontSize: '12px', lineHeight: '1.6' }}>{tc.expected_result}</div>
-                </div>
-              )}
+
+          {/* Editable fields grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 20px', marginBottom: '12px' }}>
+            <div>
+              <div style={lblStyle}>Module {savedField === 'module' && <span style={{ color: C.green, fontWeight: 700 }}>Saved ✓</span>}</div>
+              {canEditFields ? (
+                <input value={tcModule} onChange={e => setTcModule(e.target.value)} onBlur={e => autoSave('module', e.target.value)} style={inStyle} placeholder="e.g. Authentication" />
+              ) : <div style={{ fontSize: '12px', color: C.text, fontFamily: "'JetBrains Mono',monospace" }}>{tc.module || '—'}</div>}
             </div>
-            {isQA && <>
+            <div style={{ gridColumn: '1/-1' }}>
+              <div style={lblStyle}>Summary {savedField === 'summary' && <span style={{ color: C.green, fontWeight: 700 }}>Saved ✓</span>}</div>
+              {canEditFields ? (
+                <input value={tcSummary} onChange={e => setTcSummary(e.target.value)} onBlur={e => autoSave('summary', e.target.value)} style={inStyle} placeholder="What is being tested?" />
+              ) : <div style={{ fontSize: '12px', color: C.text, fontFamily: "'JetBrains Mono',monospace" }}>{tc.summary || '—'}</div>}
+            </div>
+            <div>
+              <div style={lblStyle}>Priority {savedField === 'priority' && <span style={{ color: C.green, fontWeight: 700 }}>Saved ✓</span>}</div>
+              {canEditFields ? (
+                <select value={tcPriority} onChange={e => { setTcPriority(e.target.value); autoSave('priority', e.target.value); }} style={{ ...inStyle, cursor: 'pointer', color: PRIORITY_COLORS[tcPriority] || C.text, border: `1px solid ${PRIORITY_COLORS[tcPriority] || C.border}` } as React.CSSProperties}>
+                  {['Critical','High','Medium','Low'].map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              ) : <Chip text={tc.priority} color={PRIORITY_COLORS[tc.priority]} />}
+            </div>
+            <div>
+              <div style={lblStyle}>Platform {savedField === 'platform' && <span style={{ color: C.green, fontWeight: 700 }}>Saved ✓</span>}</div>
+              {canEditFields ? (
+                <select value={tcPlatform} onChange={e => { setTcPlatform(e.target.value); autoSave('platform', e.target.value); }} style={{ ...inStyle, cursor: 'pointer' } as React.CSSProperties}>
+                  {effectivePlatforms.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              ) : <Chip text={tc.platform} color={PLATFORM_COLORS[tc.platform] || C.blue} />}
+            </div>
+            <div style={{ gridColumn: '1/-1' }}>
+              <div style={lblStyle}>Labels {savedField === 'labels' && <span style={{ color: C.green, fontWeight: 700 }}>Saved ✓</span>}</div>
+              {canEditFields ? (
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {(labelOptions.length > 0 ? labelOptions : ['Smoke','Regression','Sanity','Integration','E2E']).map((l: string) => {
+                    const sel = tcLabels.includes(l);
+                    const col = LABEL_COLORS[l] || C.accent;
+                    return (
+                      <div key={l} onClick={() => { const next = sel ? tcLabels.filter(x => x !== l) : [...tcLabels, l]; setTcLabels(next); autoSave('labels', next); }}
+                        style={{ cursor: 'pointer', padding: '3px 10px', borderRadius: '5px', fontSize: '11px', fontFamily: "'JetBrains Mono',monospace", fontWeight: 600, transition: 'all 0.15s', background: sel ? col + '20' : 'var(--qa-input)', border: `1px solid ${sel ? col + '50' : C.border}`, color: sel ? col : C.textMid }}>
+                        {sel && <span style={{ marginRight: '3px', fontSize: '9px' }}>✓</span>}{l}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>{(tc.labels || []).map((l: string) => <Chip key={l} text={l} color={LABEL_COLORS[l] || C.textDim} sm />)}</div>}
+            </div>
+            <div style={{ gridColumn: '1/-1' }}>
+              <div style={lblStyle}>Preconditions {savedField === 'preconditions' && <span style={{ color: C.green, fontWeight: 700 }}>Saved ✓</span>}</div>
+              {canEditFields ? (
+                <textarea value={tcPreconditions} onChange={e => setTcPreconditions(e.target.value)} onBlur={e => autoSave('preconditions', e.target.value)} rows={2} placeholder="What must be true before executing?" style={{ ...inStyle, resize: 'vertical', lineHeight: '1.6' } as React.CSSProperties} />
+              ) : <div style={{ fontSize: '12px', color: C.text, fontFamily: "'JetBrains Mono',monospace", whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{tc.preconditions || '—'}</div>}
+            </div>
+            <div style={{ gridColumn: '1/-1' }}>
+              <div style={lblStyle}>Steps {savedField === 'steps' && <span style={{ color: C.green, fontWeight: 700 }}>Saved ✓</span>}</div>
+              {canEditFields ? (
+                <textarea value={tcStepsText} onChange={e => setTcStepsText(e.target.value)} onBlur={e => autoSaveSteps(e.target.value)} rows={4} placeholder={'1. Navigate to...\n2. Enter...\n3. Click...'} style={{ ...inStyle, resize: 'vertical', lineHeight: '1.7' } as React.CSSProperties} />
+              ) : <div style={{ fontSize: '12px', color: C.text, fontFamily: "'JetBrains Mono',monospace", whiteSpace: 'pre-wrap', lineHeight: 1.9 }}>{initStepsText || '—'}</div>}
+            </div>
+            <div style={{ gridColumn: '1/-1' }}>
+              <div style={lblStyle}>Expected Result {savedField === 'expected_result' && <span style={{ color: C.green, fontWeight: 700 }}>Saved ✓</span>}</div>
+              {canEditFields ? (
+                <textarea value={tcExpected} onChange={e => setTcExpected(e.target.value)} onBlur={e => autoSave('expected_result', e.target.value)} rows={2} placeholder="What should happen?" style={{ ...inStyle, resize: 'vertical', lineHeight: '1.6', borderColor: `${C.green}40` } as React.CSSProperties} />
+              ) : <div style={{ fontSize: '12px', color: C.green, fontFamily: "'JetBrains Mono',monospace", lineHeight: 1.6 }}>{tc.expected_result || '—'}</div>}
+            </div>
+          </div>
+
+          {/* Execution Status + Test Result */}
+          {isQA && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px 20px', marginBottom: '14px' }}>
               <div>
-                <div style={{ fontSize: '10px', fontWeight: '700', color: C.accent, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.07em', textTransform: 'uppercase', marginBottom: '6px' }}>Execution Status</div>
-                <select value={execStatus} onChange={e => setExecStatus(e.target.value)} style={{ width: '100%', background: 'var(--qa-select-bg)', border: `1px solid ${STATUS_COLORS[execStatus] || C.border}`, borderRadius: '9px', padding: '9px 12px', color: STATUS_COLORS[execStatus] || C.text, fontSize: '13px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }}>
+                <div style={lblStyle}>Execution Status {savedField === 'status' && <span style={{ color: C.green, fontWeight: 700 }}>Saved ✓</span>}</div>
+                <select value={execStatus} onChange={e => setExecStatus(e.target.value)} disabled={readOnly} style={{ width: '100%', background: 'var(--qa-select-bg)', border: `1px solid ${STATUS_COLORS[execStatus] || C.border}`, borderRadius: '9px', padding: '9px 12px', color: STATUS_COLORS[execStatus] || C.text, fontSize: '13px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }}>
                   {['Not Executed','Executed'].map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
               <div>
-                <div style={{ fontSize: '10px', fontWeight: '700', color: C.accent, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.07em', textTransform: 'uppercase', marginBottom: '6px' }}>Test Result</div>
-                <select value={testResult} onChange={e => {
-                  const val = e.target.value;
-                  setTestResult(val);
-                  if (val !== 'Fail') {
-                    setActualResult('');
-                  } else {
-                    setTimeout(() => document.getElementById(`actual-result-${tc.id}`)?.focus(), 100);
-                  }
-                }} style={{ width: '100%', background: 'var(--qa-select-bg)', border: `1px solid ${STATUS_COLORS[testResult] || C.border}`, borderRadius: '9px', padding: '9px 12px', color: STATUS_COLORS[testResult] || C.text, fontSize: '13px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }}>
+                <div style={lblStyle}>Test Result</div>
+                <select value={testResult} onChange={e => { const val = e.target.value; setTestResult(val); if (val !== 'Fail') { setActualResult(''); } else { setTimeout(() => document.getElementById(`actual-result-${tc.id}`)?.focus(), 100); } }} disabled={readOnly} style={{ width: '100%', background: 'var(--qa-select-bg)', border: `1px solid ${STATUS_COLORS[testResult] || C.border}`, borderRadius: '9px', padding: '9px 12px', color: STATUS_COLORS[testResult] || C.text, fontSize: '13px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }}>
                   {['N/A','Pass','Fail','Blocked'].map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
               {testResult === 'Fail' && (
                 <div style={{ gridColumn: 'span 3' }}>
-                  <div style={{ fontSize: '10px', fontWeight: '700', color: '#ef4444', fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.07em', textTransform: 'uppercase', marginBottom: '6px' }}>⚠ Actual Result</div>
+                  <div style={lblStyle}>⚠ Actual Result {savedField === 'actual_result' && <span style={{ color: C.green, fontWeight: 700 }}>Saved ✓</span>}</div>
                   <textarea
                     id={`actual-result-${tc.id}`}
                     value={actualResult}
@@ -410,7 +531,7 @@ function TCExpandedRow({ tc, user, onClose, projectId, readOnly }: { tc: any; us
                       setActualResult(val);
                       if (actualResultTimer.current) clearTimeout(actualResultTimer.current);
                       actualResultTimer.current = setTimeout(() => {
-                        updateTestCase(tc.id, { actual_result: val }).then(() => qc.invalidateQueries({ queryKey: ['testcases', projectId] }));
+                        updateTestCase(tc.id, { actual_result: val }).then(() => { qc.invalidateQueries({ queryKey: ['testcases', projectId] }); showSaved('actual_result'); });
                       }, 800);
                     }}
                     placeholder="Describe what actually happened..."
@@ -420,8 +541,8 @@ function TCExpandedRow({ tc, user, onClose, projectId, readOnly }: { tc: any; us
                   />
                 </div>
               )}
-            </>}
-          </div>
+            </div>
+          )}
 
           {/* Comments */}
           <div style={{ marginBottom: '12px' }}>
@@ -850,6 +971,7 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
   const [addDoc, setAddDoc] = useState(false);
   const [docLabel, setDocLabel] = useState('');
   const [docUrl, setDocUrl] = useState('');
+  const [docFile, setDocFile] = useState<File | null>(null);
   const [docCategory, setDocCategory] = useState('figma');
   const [docType, setDocType] = useState('link');
 
@@ -884,6 +1006,17 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
   const [editCredForm, setEditCredForm] = useState({ user_role: '', username: '', password: '', url: '', notes: '' });
   const [showEditCredPassword, setShowEditCredPassword] = useState(false);
   const [editCredPending, setEditCredPending] = useState(false);
+
+  // Local project field overrides — updated immediately after mutation success so UI reflects changes without page refresh
+  const [localFigmaUrl, setLocalFigmaUrl] = useState<string | null>(project.figma_url || null);
+  const [localFrdUrl, setLocalFrdUrl] = useState<string | null>(project.frd_url || null);
+  const [localProjectDetails, setLocalProjectDetails] = useState({
+    start_date: project.start_date || '',
+    end_date: project.end_date || '',
+    ba_name: project.ba_name || '',
+    designer_name: project.designer_name || '',
+    project_type: project.project_type || '',
+  });
 
   // Project details editing
   const [editingDetails, setEditingDetails] = useState(false);
@@ -1099,9 +1232,25 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
 
   const addDocMut = useMutation({
     mutationFn: (data: any) => addDocument(data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['documents', project.id] }); setAddDoc(false); setDocLabel(''); setDocUrl(''); setDocCategory('figma'); setDocType('link'); toast.success('Document added'); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['documents', project.id] }); setAddDoc(false); setDocLabel(''); setDocUrl(''); setDocFile(null); setDocCategory('figma'); setDocType('link'); toast.success('Document added'); },
     onError: () => toast.error('Failed to add document'),
   });
+
+  const handleAddDocSubmit = async () => {
+    if (!docLabel) return;
+    if (docType === 'file') {
+      if (!docFile) { toast.error('Please choose a file'); return; }
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const dataUrl = ev.target?.result as string;
+        addDocMut.mutate({ project_id: project.id, type: 'file', label: docLabel, url: dataUrl, file_size: docFile.size, file_mime: docFile.type, doc_category: docCategory });
+      };
+      reader.readAsDataURL(docFile);
+    } else {
+      if (!docUrl) { toast.error('Please enter a URL'); return; }
+      addDocMut.mutate({ project_id: project.id, type: 'link', label: docLabel, url: docUrl, doc_category: docCategory });
+    }
+  };
 
   const bulkDeleteBugsMut = useMutation({
     mutationFn: (ids: string[]) => Promise.all(ids.map(id => deleteBug(id))),
@@ -1185,7 +1334,15 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
 
   const updateProjectMut = useMutation({
     mutationFn: (data: any) => updateProject(project.id, data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['projects'] }); toast.success('Project updated!'); },
+    onSuccess: (_updated: any, vars: any) => {
+      qc.invalidateQueries({ queryKey: ['projects'] });
+      if (vars.figma_url !== undefined) setLocalFigmaUrl(vars.figma_url || null);
+      if (vars.frd_url !== undefined) setLocalFrdUrl(vars.frd_url || null);
+      if (vars.start_date !== undefined || vars.end_date !== undefined || vars.ba_name !== undefined || vars.designer_name !== undefined || vars.project_type !== undefined) {
+        setLocalProjectDetails(prev => ({ ...prev, start_date: vars.start_date ?? prev.start_date, end_date: vars.end_date ?? prev.end_date, ba_name: vars.ba_name ?? prev.ba_name, designer_name: vars.designer_name ?? prev.designer_name, project_type: vars.project_type ?? prev.project_type }));
+      }
+      toast.success('Project updated!');
+    },
   });
 
   const uploadScriptMut = useMutation({
@@ -1781,20 +1938,20 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                       setEditingDetails(false);
                     }} disabled={updateProjectMut.isPending}>Save</Btn>
                     <Btn sm v="ghost" onClick={() => {
-                      setDetailStartDate(project.start_date || ''); setDetailEndDate(project.end_date || '');
-                      setDetailBAName(project.ba_name || ''); setDetailDesignerName(project.designer_name || '');
-                      setDetailProjectType(project.project_type || ''); setEditingDetails(false);
+                      setDetailStartDate(localProjectDetails.start_date); setDetailEndDate(localProjectDetails.end_date);
+                      setDetailBAName(localProjectDetails.ba_name); setDetailDesignerName(localProjectDetails.designer_name);
+                      setDetailProjectType(localProjectDetails.project_type); setEditingDetails(false);
                     }}>Cancel</Btn>
                   </div>
                 </div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 20px' }}>
                   {[
-                    { l: 'Start Date', v: project.start_date ? new Date(project.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—' },
-                    { l: 'End Date', v: project.end_date ? new Date(project.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—' },
-                    { l: 'Business Analyst', v: project.ba_name || '—' },
-                    { l: 'Designer', v: project.designer_name || '—' },
-                    { l: 'Project Type', v: project.project_type ? project.project_type.charAt(0).toUpperCase() + project.project_type.slice(1) : '—' },
+                    { l: 'Start Date', v: localProjectDetails.start_date ? new Date(localProjectDetails.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—' },
+                    { l: 'End Date', v: localProjectDetails.end_date ? new Date(localProjectDetails.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—' },
+                    { l: 'Business Analyst', v: localProjectDetails.ba_name || '—' },
+                    { l: 'Designer', v: localProjectDetails.designer_name || '—' },
+                    { l: 'Project Type', v: localProjectDetails.project_type ? localProjectDetails.project_type.charAt(0).toUpperCase() + localProjectDetails.project_type.slice(1) : '—' },
                   ].map(({ l, v }) => (
                     <div key={l}>
                       <div style={{ fontSize: '9.5px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>{l}</div>
@@ -1806,8 +1963,8 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
             </GCard>
 
             <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
-              {project.figma_url ? (
-                <a href={project.figma_url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 18px', background: `${C.purple}18`, border: `1px solid ${C.purple}35`, borderRadius: '8px', color: C.purple, textDecoration: 'none', fontFamily: "'JetBrains Mono',monospace", fontSize: '12px', fontWeight: '600' }}><ExternalLink size={14} /> Figma</a>
+              {localFigmaUrl ? (
+                <a href={localFigmaUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 18px', background: `${C.purple}18`, border: `1px solid ${C.purple}35`, borderRadius: '8px', color: C.purple, textDecoration: 'none', fontFamily: "'JetBrains Mono',monospace", fontSize: '12px', fontWeight: '600' }}><ExternalLink size={14} /> Figma</a>
               ) : canEdit ? (
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <input value={figmaInputVal} onChange={e => setFigmaInputVal(e.target.value)} placeholder="Figma URL…" style={{ width: '200px', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '8px 12px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }} />
@@ -1816,8 +1973,8 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
               ) : (
                 <span style={{ fontSize: '12px', color: C.textDim, fontFamily: "'JetBrains Mono',monospace", padding: '9px 0' }}>No Figma linked</span>
               )}
-              {project.frd_url ? (
-                <a href={project.frd_url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 18px', background: `${C.blue}18`, border: `1px solid ${C.blue}35`, borderRadius: '8px', color: C.blue, textDecoration: 'none', fontFamily: "'JetBrains Mono',monospace", fontSize: '12px', fontWeight: '600' }}><FileText size={14} /> FRD</a>
+              {localFrdUrl ? (
+                <a href={localFrdUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 18px', background: `${C.blue}18`, border: `1px solid ${C.blue}35`, borderRadius: '8px', color: C.blue, textDecoration: 'none', fontFamily: "'JetBrains Mono',monospace", fontSize: '12px', fontWeight: '600' }}><FileText size={14} /> FRD</a>
               ) : canEdit ? (
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <input value={frdInputVal} onChange={e => setFrdInputVal(e.target.value)} placeholder="FRD URL…" style={{ width: '200px', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '8px 12px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }} />
@@ -2142,8 +2299,8 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                   const isOver = dragOverColumn === status;
                   return (
                     <div key={status}
-                      onDragOver={e => { if (!canEdit || user.role === 'hr') return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOverColumn(status); }}
-                      onDrop={e => { if (!canEdit || user.role === 'hr') return; e.preventDefault(); if (!draggedBugId) return; saveBugStatusMut.mutate({ id: draggedBugId, status }); setDraggedBugId(null); setDragOverColumn(null); }}
+                      onDragOver={e => { if (user.role === 'hr' || (!canEdit && user.role !== 'developer')) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOverColumn(status); }}
+                      onDrop={e => { if (user.role === 'hr' || (!canEdit && user.role !== 'developer')) return; e.preventDefault(); if (!draggedBugId) return; saveBugStatusMut.mutate({ id: draggedBugId, status }); setDraggedBugId(null); setDragOverColumn(null); }}
                       onDragLeave={() => setDragOverColumn(null)}
                       style={{ background: isOver ? 'rgba(59,130,246,0.08)' : 'var(--qa-card)', border: isOver ? '1px solid rgba(59,130,246,0.4)' : `1px solid ${C.border}`, borderRadius: '12px', padding: '12px', minHeight: '200px', transition: 'background 0.15s, border-color 0.15s' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', paddingBottom: '8px', borderBottom: `1px solid ${C.border}` }}>
@@ -2156,8 +2313,8 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                       {colBugs.length === 0 && <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--qa-text-faint)', fontSize: '10px', fontFamily: "'JetBrains Mono',monospace", opacity: .5 }}>No bugs</div>}
                       {colBugs.map((b: any) => (
                         <div key={b.id}
-                          draggable={canEdit && user.role !== 'hr'}
-                          onDragStart={e => { if (!canEdit || user.role === 'hr') { e.preventDefault(); return; } setDraggedBugId(b.id); e.dataTransfer.effectAllowed = 'move'; }}
+                          draggable={(canEdit || user.role === 'developer') && user.role !== 'hr'}
+                          onDragStart={e => { if (user.role === 'hr' || (!canEdit && user.role !== 'developer')) { e.preventDefault(); return; } setDraggedBugId(b.id); e.dataTransfer.effectAllowed = 'move'; }}
                           onDragEnd={() => { setDraggedBugId(null); setDragOverColumn(null); }}
                           onClick={() => { setBugView('table'); setExpandedBug(b.id); setTimeout(() => document.getElementById(`bug-row-${b.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150); }}
                           style={{ background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderLeft: `3px solid ${col}`, borderRadius: '8px', padding: '10px', marginBottom: '8px', cursor: 'grab', opacity: draggedBugId === b.id ? 0.5 : 1, transition: 'opacity 0.15s, transform 0.15s, border-color 0.15s' }}
@@ -2602,7 +2759,12 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                             <Chip text={d.type} color={d.type === 'link' ? C.blue : C.yellow} sm />
                           </div>
                           <div style={{ display: 'flex', gap: '6px' }}>
-                            {d.url && <Btn sm v="ghost" onClick={() => window.open(d.url, '_blank')}>Open</Btn>}
+                            {d.url && d.type === 'link' && <Btn sm v="ghost" onClick={() => window.open(d.url, '_blank')}>Open</Btn>}
+                            {d.url && d.type === 'file' && (
+                              <a href={d.url} download={d.label} style={{ textDecoration: 'none' }}>
+                                <Btn sm v="ghost"><Download size={12} style={{ marginRight: '4px', verticalAlign: 'middle' }} />Download</Btn>
+                              </a>
+                            )}
                             {canDelete && <Btn sm v="danger" onClick={() => setConfirmDelete({ type: 'doc', id: d.id, label: d.label })}>Delete</Btn>}
                           </div>
                         </div>
@@ -2614,18 +2776,28 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
             )}
 
             {addDoc && (
-              <Modal title="Add Document" onClose={() => { setAddDoc(false); setDocLabel(''); setDocUrl(''); }}>
+              <Modal title="Add Document" onClose={() => { setAddDoc(false); setDocLabel(''); setDocUrl(''); setDocFile(null); }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
                   <Sel label="Category" opts={['figma','frd','additional']} value={docCategory} onChange={setDocCategory} />
                   <Sel label="Type" opts={['link','file']} value={docType} onChange={setDocType} />
                   <div style={{ gridColumn: '1/-1' }}><Inp label="Label" ph="e.g. Mobile App Figma" value={docLabel} onChange={setDocLabel} req /></div>
                   {docType === 'link' && <div style={{ gridColumn: '1/-1' }}><Inp label="URL" ph="https://…" value={docUrl} onChange={setDocUrl} req /></div>}
+                  {docType === 'file' && (
+                    <div style={{ gridColumn: '1/-1' }}>
+                      <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: 'var(--qa-text-mid)', marginBottom: '8px', fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.08em', textTransform: 'uppercase' }}>File *</label>
+                      <label style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 14px', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', fontSize: '12px', color: docFile ? C.text : 'var(--qa-text-muted)', fontFamily: "'JetBrains Mono',monospace", userSelect: 'none' } as React.CSSProperties}>
+                        <Upload size={14} />
+                        {docFile ? docFile.name : 'Choose file…'}
+                        <input type="file" hidden onChange={e => setDocFile(e.target.files?.[0] || null)} />
+                      </label>
+                    </div>
+                  )}
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <Btn onClick={() => addDocMut.mutate({ project_id: project.id, type: docType, label: docLabel, url: docUrl || null, doc_category: docCategory })} disabled={addDocMut.isPending || !docLabel || (docType === 'link' && !docUrl)}>
+                  <Btn onClick={handleAddDocSubmit} disabled={addDocMut.isPending || !docLabel || (docType === 'link' && !docUrl) || (docType === 'file' && !docFile)}>
                     {addDocMut.isPending ? 'Adding…' : 'Add Document'}
                   </Btn>
-                  <Btn v="ghost" onClick={() => { setAddDoc(false); setDocLabel(''); setDocUrl(''); }}>Cancel</Btn>
+                  <Btn v="ghost" onClick={() => { setAddDoc(false); setDocLabel(''); setDocUrl(''); setDocFile(null); }}>Cancel</Btn>
                 </div>
               </Modal>
             )}

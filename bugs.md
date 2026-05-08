@@ -1,5 +1,5 @@
 # QAMS — Bug & Feature Tracker
-Last Updated: 2026-05-06
+Last Updated: 2026-05-09
 
 ---
 
@@ -68,6 +68,11 @@ Last Updated: 2026-05-06
 | 37 | Password field in Add Credential form has no show/hide toggle | 🟢 Fixed — Eye/EyeOff toggle added to password field in both add and edit forms |
 | 38 | Credentials can only be deleted, not edited | 🟢 Fixed — Pencil edit button added; inline edit form with all fields + PATCH backend route |
 | 39 | Importing test cases twice when Import button clicked rapidly | 🟢 Fixed — Import button disabled while bulkImportMut.isPending |
+| 40 | Bugs and Test Cases cannot be edited once logged (C1+L8) | 🟢 Fixed — TCExpandedRow now fully editable (module, summary, priority, platform, labels, preconditions, steps, expected result) with onBlur auto-save + "Saved ✓" indicator; BugExpandedRow adds module, summary, status inline edit with auto-save |
+| 41 | No file upload option in Documents when type is "File" (C3) | 🟢 Fixed — file input shown when type='file'; reads as base64 data URL, stored in DB url field; display shows Download button instead of Open |
+| 42 | Kanban not interactable for developers (C6) | 🟢 Fixed — draggable and drop now allowed for developer role (HR still blocked) |
+| 43 | Pass rate bar not visible in light mode (C7) | 🟢 Fixed — track uses var(--qa-border-soft) instead of rgba(white,0.06); fill color is dynamic (green ≥80%, accent ≥50%, red <50%) |
+| 44 | Project update (Figma/FRD/Details) requires refresh to show new values | 🟢 Fixed — localFigmaUrl, localFrdUrl, localProjectDetails state updated immediately in updateProjectMut.onSuccess; no refresh needed |
 
 ---
 

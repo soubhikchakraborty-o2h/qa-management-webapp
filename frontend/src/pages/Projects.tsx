@@ -132,10 +132,10 @@ function ProjCard({ p, onClick, onDelete, viewOnly }: { p: any; onClick: () => v
           <span style={{ fontSize: '9px', color: 'var(--qa-text-mid)', fontFamily: "var(--font-body, 'Manrope', sans-serif)", letterSpacing: '.1em', textTransform: 'uppercase', fontWeight: 600 }}>Pass Rate</span>
           <span style={{ fontSize: '11px', color: 'var(--qa-text)', fontFamily: "var(--font-body, 'Manrope', sans-serif)", fontWeight: 700 }}>{passRate}%</span>
         </div>
-        <div style={{ height: '4px', background: 'rgba(255,255,255,0.06)', borderRadius: '999px', overflow: 'hidden' }}>
+        <div style={{ height: '4px', background: 'var(--qa-border-soft, rgba(128,128,128,0.2))', borderRadius: '999px', overflow: 'hidden' }}>
           <div style={{
             height: '100%', width: `${passRate}%`,
-            background: 'linear-gradient(90deg, var(--qa-accent), #10b981)',
+            background: passRate >= 80 ? '#10b981' : passRate >= 50 ? 'var(--qa-accent)' : '#ef4444',
             borderRadius: '999px',
             transition: 'width 0.4s ease',
           }} />
@@ -143,7 +143,7 @@ function ProjCard({ p, onClick, onDelete, viewOnly }: { p: any; onClick: () => v
       </div>
 
       {/* Bottom row */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid var(--qa-border-soft, rgba(128,128,128,0.15))' }}>
         <div style={{ display: 'flex', gap: '14px' }}>
           <span style={{ fontSize: '11px', color: 'var(--qa-text-mid)', fontFamily: "var(--font-body, 'Manrope', sans-serif)", display: 'inline-flex', alignItems: 'center', gap: '4px' }}><BugIcon size={12} /> <strong style={{ color: 'var(--qa-text)', fontWeight: 700 }}>{p.bug_count || 0}</strong></span>
           <span style={{ fontSize: '11px', color: 'var(--qa-text-mid)', fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>✓ <strong style={{ color: 'var(--qa-text)', fontWeight: 700 }}>{p.test_case_count || 0}</strong></span>
