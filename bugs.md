@@ -1,5 +1,5 @@
 # QAMS — Bug & Feature Tracker
-Last Updated: 2026-05-05
+Last Updated: 2026-05-06
 
 ---
 
@@ -30,7 +30,7 @@ Last Updated: 2026-05-05
 | # | Bug | Status |
 |---|-----|--------|
 | 1 | Developer can add test cases via empty state button — should be read-only | 🟢 Fixed — empty state buttons now check canEdit |
-| 2 | Dev can't see test cases unless QA logged in first (session/fetch issue) | 🔴 Open |
+| 2 | Dev can't see test cases unless QA logged in first (session/fetch issue) | 🟢 Fixed — GET /test-cases now uses optional-auth; no-token (dev flow) allowed |
 | 3 | No option to switch QA in developer flow — must sign out and back in | 🟢 Fixed — Switch QA button added to sidebar for developer role |
 | 4 | HR date picker in US format — should be DD/MM/YYYY | 🟢 Fixed — DateInput component shows DD/MM/YYYY, click opens calendar |
 | 5 | HR Projects shows "Type: QA Soubhik" — should show "QA: Name" and "Developer: roster" | 🟢 Fixed — shows QA: name + developer roster |
@@ -48,7 +48,7 @@ Last Updated: 2026-05-05
 | 17 | Some Kanban bug cards don't open the specific bug on click | 🟢 Fixed — kanban click sets bugView+expandedBug and scrolls to bug-row-{id} |
 | 18 | HR Projects page — "active" status tag is lowercase | 🟢 Fixed — status chip text capitalized |
 | 19 | All icons too small (bug, tick, search etc) — need to be larger | 🟢 Fixed — replaced emoji icons with lucide-react SVGs across Projects, ProjectShell, layout sidebar, HRDashboard, and ui/index; DevIcon updated to clean code chevrons; Eye/EyeOff for password toggle; Trash2 for all deletes; Bug for bug count; ChevronLeft/Right for nav arrows; Calendar for dates; User for QA label; Link/FileText for resources/docs |
-| 20 | All exports need dropdown: PDF, CSV, XLSX, DOCX, ZIP where applicable | 🔴 Open |
+| 20 | All exports need dropdown: PDF, CSV, XLSX, DOCX, ZIP where applicable | 🟢 Fixed — TC export: CSV/Excel/PDF/Word/ZIP; Bug export: CSV/Excel/Word/ZIP + existing PDF report |
 | 21 | Remove agent/manual distinction from test cases and bugs — unnecessary | 🟢 Fixed — filter removed, is_auto_generated badge removed |
 | 22 | Import preview table header not opaque — text overlaps on scroll | 🟢 Fixed — sticky + background applied to import preview headers |
 | 23 | Field mapping wrong for CSV/Sheets imports (exact headers now confirmed) | 🟢 Fixed — TC ID, Test Case Title, Type, Developer's Comment all mapped correctly |
@@ -61,6 +61,13 @@ Last Updated: 2026-05-05
 | 30 | Delete operations slow — no indexes on FK columns, sequential awaits, O(n) re-sequencing after each delete | 🟢 Fixed — 9 DB indexes added; project delete parallelized (5 concurrent); TC/bug re-sequencing removed; 6 mutations get optimistic UI (instant removal) |
 | 31 | Project card shows 0 for test case count (✓) and bug count (🪲) even when data exists | 🟢 Fixed — backend now runs 3 parallel count queries per request and injects test_case_count, bug_count, pass_count onto every project; pass rate bar also now correct |
 | 32 | Delete confirmation modal stays open during network delay | 🟢 Fixed — setConfirmDelete(null) now called immediately in handleDeleteConfirm before mutation fires |
+| 33 | Developer Roster in Overview allows free-text — should restrict to DB names like dev login | 🟢 Fixed — replaced free-text input with TypeSearch (type="all", allowCustom=false) |
+| 34 | Project Details date fields don't open calendar on field click | 🟢 Fixed — onClick calls showPicker() on both start/end date inputs |
+| 35 | Credentials: username and password required when they should be optional | 🟢 Fixed — only User Role is required; backend validation updated too |
+| 36 | Credentials URL placeholder unhelpful ("https://…") | 🟢 Fixed — placeholder changed to "https://www.exampleapplication.com" |
+| 37 | Password field in Add Credential form has no show/hide toggle | 🟢 Fixed — Eye/EyeOff toggle added to password field in both add and edit forms |
+| 38 | Credentials can only be deleted, not edited | 🟢 Fixed — Pencil edit button added; inline edit form with all fields + PATCH backend route |
+| 39 | Importing test cases twice when Import button clicked rapidly | 🟢 Fixed — Import button disabled while bulkImportMut.isPending |
 
 ---
 
@@ -108,4 +115,5 @@ Jaini, Maitri, Ankit, Prasanna, Smita, Dhruvi, Piyush, Farhad, Muskan
 **Fullstack:** Gopal, Keyur, Nikhil, Manav, Aman Kumar, Dhyey, Ajay, Sachin, Vinit, Asmita, Bhavesh, Chirag, Dhruvil, Vipul, Aman Singh, Jayraj, Riya Thakkar, Shreya, Rituraj, Sundaram, Chahat, Shubham, Atul, Rishi
 **Mobile:** Vimal, Naimee, Vijay
 **DevOps:** Riyaz
+
 

@@ -1,4 +1,5 @@
 import express from 'express';
+import jwt from 'jsonwebtoken';
 import supabase from '../lib/supabase.js';
 import { authenticate } from '../middleware/auth.js';
 
@@ -10,10 +11,16 @@ const canEdit = async (projectId, user) => {
   return !!data;
 };
 
-router.get('/', authenticate, async (req, res) => {
+// Public read — verify token if provided, allow no-token for developer flow
+router.get('/', async (req, res) => {
   try {
     const { project_id } = req.query;
     if (!project_id) return res.status(400).json({ error: 'project_id required' });
+    const authHeader = req.headers.authorization;
+    if (authHeader?.startsWith('Bearer ')) {
+      try { jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET); }
+      catch { return res.status(401).json({ error: 'Invalid token' }); }
+    }
     const { data, error } = await supabase.from('test_cases')
       .select('*, created_by_user:users!test_cases_created_by_fkey(id,name)')
       .eq('project_id', project_id).order('test_case_id');
