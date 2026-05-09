@@ -1,5 +1,5 @@
 # QAMS — Bug & Feature Tracker
-Last Updated: 2026-05-09 (H-series)
+Last Updated: 2026-05-09 (H-series + L1)
 
 ---
 
@@ -22,6 +22,7 @@ Last Updated: 2026-05-09 (H-series)
 | F13 | About popup on version click | 🟢 Fixed — version text in sidebar is clickable; About modal with app description and author card (Soubhik Chakraborty) |
 | F14 | Automation tab — ZIP upload replaces predefined cards | 🟢 Fixed — predefined Playwright/Selenium cards removed; clean ZIP upload UI with drag-and-drop, ZIP list with download/delete; base64 stored in DB |
 | F15 | Credentials tab between Automation and Documents | 🟢 Fixed — project_credentials table + backend routes; Credentials tab shows credential cards with masked password, Eye toggle, Copy buttons for username/password/URL; QA can add/delete, developers read-only |
+| F16 | L1: Contract Type + TL/PM + Team Size fields in Project Details | 🟢 Fixed — DB columns added (contract_type text CHECK, tl_pm_name text, team_size integer); backend PATCH allows all three; Project Details card shows them in edit form (onBlur auto-save + "Saved ✓") and read-only view (contract as accent chip) |
 
 ---
 

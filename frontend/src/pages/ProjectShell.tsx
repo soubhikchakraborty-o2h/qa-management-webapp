@@ -1035,6 +1035,9 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
     ba_name: project.ba_name || '',
     designer_name: project.designer_name || '',
     project_type: project.project_type || '',
+    contract_type: project.contract_type || 'T&M',
+    tl_pm_name: project.tl_pm_name || '',
+    team_size: project.team_size ?? 0,
   });
 
   // Project details editing
@@ -1044,6 +1047,11 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
   const [detailBAName, setDetailBAName] = useState(project.ba_name || '');
   const [detailDesignerName, setDetailDesignerName] = useState(project.designer_name || '');
   const [detailProjectType, setDetailProjectType] = useState(project.project_type || '');
+  const [detailContractType, setDetailContractType] = useState(project.contract_type || 'T&M');
+  const [detailTLPM, setDetailTLPM] = useState(project.tl_pm_name || '');
+  const [detailTeamSize, setDetailTeamSize] = useState<string>(project.team_size ? String(project.team_size) : '');
+  const [detailsSaved, setDetailsSaved] = useState<string | null>(null);
+  const showDetailSaved = (field: string) => { setDetailsSaved(field); setTimeout(() => setDetailsSaved(null), 2000); };
 
   // Bug form
   const [bModule, setBModule] = useState(''); const [bSummary, setBSummary] = useState('');
@@ -1363,8 +1371,8 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
       qc.invalidateQueries({ queryKey: ['projects'] });
       if (vars.figma_url !== undefined) setLocalFigmaUrl(vars.figma_url || null);
       if (vars.frd_url !== undefined) setLocalFrdUrl(vars.frd_url || null);
-      if (vars.start_date !== undefined || vars.end_date !== undefined || vars.ba_name !== undefined || vars.designer_name !== undefined || vars.project_type !== undefined) {
-        setLocalProjectDetails(prev => ({ ...prev, start_date: vars.start_date ?? prev.start_date, end_date: vars.end_date ?? prev.end_date, ba_name: vars.ba_name ?? prev.ba_name, designer_name: vars.designer_name ?? prev.designer_name, project_type: vars.project_type ?? prev.project_type }));
+      if (vars.start_date !== undefined || vars.end_date !== undefined || vars.ba_name !== undefined || vars.designer_name !== undefined || vars.project_type !== undefined || vars.contract_type !== undefined || vars.tl_pm_name !== undefined || vars.team_size !== undefined) {
+        setLocalProjectDetails(prev => ({ ...prev, start_date: vars.start_date ?? prev.start_date, end_date: vars.end_date ?? prev.end_date, ba_name: vars.ba_name ?? prev.ba_name, designer_name: vars.designer_name ?? prev.designer_name, project_type: vars.project_type ?? prev.project_type, contract_type: vars.contract_type ?? prev.contract_type, tl_pm_name: vars.tl_pm_name ?? prev.tl_pm_name, team_size: vars.team_size ?? prev.team_size }));
       }
       toast.success('Project updated!');
     },
@@ -1968,16 +1976,51 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                       <option value="external">External</option>
                     </select>
                   </div>
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                  <div>
+                    <div style={{ fontSize: '9.5px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>Contract Type</div>
+                    <select value={detailContractType} onChange={e => setDetailContractType(e.target.value)}
+                      onBlur={() => { updateProjectMut.mutate({ contract_type: detailContractType }); showDetailSaved('contract_type'); }}
+                      style={{ width: '100%', background: 'var(--qa-select-bg)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '8px 10px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }}>
+                      <option value="FTE">FTE</option>
+                      <option value="S&M">S&amp;M — Support &amp; Maintenance</option>
+                      <option value="T&M">T&amp;M — Time &amp; Material</option>
+                      <option value="Fixed Cost">Fixed Cost</option>
+                    </select>
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '9.5px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>
+                      TL / PM {detailsSaved === 'tl_pm_name' && <span style={{ color: '#10b981', textTransform: 'none' }}>Saved ✓</span>}
+                    </div>
+                    <input value={detailTLPM} onChange={e => setDetailTLPM(e.target.value)}
+                      onBlur={e => { updateProjectMut.mutate({ tl_pm_name: e.target.value || null }); showDetailSaved('tl_pm_name'); }}
+                      placeholder="Team Lead or PM name…"
+                      style={{ width: '100%', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '8px 10px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none', boxSizing: 'border-box' }} />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '9.5px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>
+                      Team Size {detailsSaved === 'team_size' && <span style={{ color: '#10b981', textTransform: 'none' }}>Saved ✓</span>}
+                    </div>
+                    <input type="number" min="1" max="500" value={detailTeamSize}
+                      onChange={e => setDetailTeamSize(e.target.value)}
+                      onBlur={e => { updateProjectMut.mutate({ team_size: e.target.value ? parseInt(e.target.value) : null }); showDetailSaved('team_size'); }}
+                      placeholder="e.g. 8"
+                      style={{ width: '100%', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '8px 10px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none', boxSizing: 'border-box' }} />
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '4px', alignItems: 'center' }}>
                     <Btn sm onClick={() => {
-                      updateProjectMut.mutate({ start_date: detailStartDate || null, end_date: detailEndDate || null, ba_name: detailBAName || null, designer_name: detailDesignerName || null, project_type: detailProjectType || null });
+                      updateProjectMut.mutate({ start_date: detailStartDate || null, end_date: detailEndDate || null, ba_name: detailBAName || null, designer_name: detailDesignerName || null, project_type: detailProjectType || null, contract_type: detailContractType || 'T&M', tl_pm_name: detailTLPM || null, team_size: detailTeamSize ? parseInt(detailTeamSize) : null });
                       setEditingDetails(false);
                     }} disabled={updateProjectMut.isPending}>Save</Btn>
                     <Btn sm v="ghost" onClick={() => {
                       setDetailStartDate(localProjectDetails.start_date); setDetailEndDate(localProjectDetails.end_date);
                       setDetailBAName(localProjectDetails.ba_name); setDetailDesignerName(localProjectDetails.designer_name);
-                      setDetailProjectType(localProjectDetails.project_type); setEditingDetails(false);
+                      setDetailProjectType(localProjectDetails.project_type);
+                      setDetailContractType(localProjectDetails.contract_type);
+                      setDetailTLPM(localProjectDetails.tl_pm_name);
+                      setDetailTeamSize(localProjectDetails.team_size ? String(localProjectDetails.team_size) : '');
+                      setEditingDetails(false);
                     }}>Cancel</Btn>
+                    {detailsSaved && <span style={{ fontSize: '11px', color: '#10b981', fontFamily: "'JetBrains Mono',monospace" }}>Saved ✓</span>}
                   </div>
                 </div>
               ) : (
@@ -1988,12 +2031,21 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                     { l: 'Business Analyst', v: localProjectDetails.ba_name || '—' },
                     { l: 'Designer', v: localProjectDetails.designer_name || '—' },
                     { l: 'Project Type', v: localProjectDetails.project_type ? localProjectDetails.project_type.charAt(0).toUpperCase() + localProjectDetails.project_type.slice(1) : '—' },
+                    { l: 'TL / PM', v: localProjectDetails.tl_pm_name || '—' },
+                    { l: 'Team Size', v: localProjectDetails.team_size ? `${localProjectDetails.team_size} members` : '—' },
                   ].map(({ l, v }) => (
                     <div key={l}>
                       <div style={{ fontSize: '9.5px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>{l}</div>
                       <div style={{ fontSize: '12px', color: v === '—' ? C.textDim : C.text, fontFamily: "'JetBrains Mono',monospace", fontWeight: v === '—' ? 400 : 600 }}>{v}</div>
                     </div>
                   ))}
+                  {/* Contract type chip */}
+                  <div>
+                    <div style={{ fontSize: '9.5px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>Contract</div>
+                    <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: '999px', fontSize: '11px', fontWeight: 600, background: 'rgba(59,130,246,0.1)', color: 'var(--qa-accent)', border: '1px solid rgba(59,130,246,0.25)', fontFamily: "var(--font-body,'Manrope',sans-serif)" }}>
+                      {localProjectDetails.contract_type || 'T&M'}
+                    </span>
+                  </div>
                 </div>
               )}
             </GCard>
