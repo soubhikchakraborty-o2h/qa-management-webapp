@@ -63,9 +63,8 @@ router.get('/dev-view', async (req, res) => {
     if (!qaUser) return res.json([]);
 
     let query = supabase.from('projects').select(BASE_SELECT);
-    if (qaUser.role !== 'admin') {
-      query = query.eq('created_by', qaUser.id);
-    }
+    // Always restrict to only the selected QA's own projects, regardless of their role
+    query = query.or(`created_by.eq.${qaUser.id},additional_qas.cs.{${qaUser.id}}`);
 
     const { data, error } = await query.order('created_at', { ascending: false });
     if (error) throw error;
@@ -91,6 +90,10 @@ router.post('/', authenticate, async (req, res) => {
     const { name, project_code, app_type, figma_url, frd_url, description, start_date, end_date, ba_name, designer_name, project_type } = req.body;
     if (!name || !project_code || !app_type) return res.status(400).json({ error: 'name, project_code, app_type required' });
 
+    // Reject duplicate project names (case-insensitive)
+    const { data: existing } = await supabase.from('projects').select('id').ilike('name', name.trim()).single();
+    if (existing) return res.status(409).json({ error: 'A project with this name already exists' });
+
     const { data: project, error } = await supabase
       .from('projects')
       .insert({ name, project_code: project_code.toUpperCase(), app_type, figma_url, frd_url, description, start_date: start_date || null, end_date: end_date || null, ba_name: ba_name || null, designer_name: designer_name || null, project_type: project_type || null, created_by: req.user.id })
@@ -113,7 +116,7 @@ router.patch('/:id', authenticate, async (req, res) => {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
-    const allowed = ['name', 'app_type', 'status', 'figma_url', 'frd_url', 'description', 'project_code', 'additional_qas', 'start_date', 'end_date', 'ba_name', 'designer_name', 'project_type'];
+    const allowed = ['name', 'app_type', 'status', 'figma_url', 'frd_url', 'description', 'project_code', 'additional_qas', 'start_date', 'end_date', 'ba_name', 'designer_name', 'project_type', 'contract_type', 'tl_name', 'pm_name', 'team_size'];
     const updates = Object.fromEntries(Object.entries(req.body).filter(([k]) => allowed.includes(k)));
     const { data, error } = await supabase.from('projects').update(updates).eq('id', req.params.id).select().single();
     if (error) throw error;

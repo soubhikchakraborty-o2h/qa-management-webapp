@@ -132,10 +132,10 @@ function ProjCard({ p, onClick, onDelete, viewOnly }: { p: any; onClick: () => v
           <span style={{ fontSize: '9px', color: 'var(--qa-text-mid)', fontFamily: "var(--font-body, 'Manrope', sans-serif)", letterSpacing: '.1em', textTransform: 'uppercase', fontWeight: 600 }}>Pass Rate</span>
           <span style={{ fontSize: '11px', color: 'var(--qa-text)', fontFamily: "var(--font-body, 'Manrope', sans-serif)", fontWeight: 700 }}>{passRate}%</span>
         </div>
-        <div style={{ height: '4px', background: 'rgba(255,255,255,0.06)', borderRadius: '999px', overflow: 'hidden' }}>
+        <div style={{ height: '4px', background: 'var(--qa-border-soft, rgba(128,128,128,0.2))', borderRadius: '999px', overflow: 'hidden' }}>
           <div style={{
             height: '100%', width: `${passRate}%`,
-            background: 'linear-gradient(90deg, var(--qa-accent), #10b981)',
+            background: passRate >= 80 ? '#10b981' : passRate >= 50 ? 'var(--qa-accent)' : '#ef4444',
             borderRadius: '999px',
             transition: 'width 0.4s ease',
           }} />
@@ -143,7 +143,7 @@ function ProjCard({ p, onClick, onDelete, viewOnly }: { p: any; onClick: () => v
       </div>
 
       {/* Bottom row */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid var(--qa-border-soft, rgba(128,128,128,0.15))' }}>
         <div style={{ display: 'flex', gap: '14px' }}>
           <span style={{ fontSize: '11px', color: 'var(--qa-text-mid)', fontFamily: "var(--font-body, 'Manrope', sans-serif)", display: 'inline-flex', alignItems: 'center', gap: '4px' }}><BugIcon size={12} /> <strong style={{ color: 'var(--qa-text)', fontWeight: 700 }}>{p.bug_count || 0}</strong></span>
           <span style={{ fontSize: '11px', color: 'var(--qa-text-mid)', fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>✓ <strong style={{ color: 'var(--qa-text)', fontWeight: 700 }}>{p.test_case_count || 0}</strong></span>
@@ -188,6 +188,7 @@ export function ProjectsPage({ user, onProjectClick, filterByQA, teamViewMember,
   const [pName, setPName] = useState(''); const [pCode, setPCode] = useState('');
   const [pType, setPType] = useState('web'); const [pFigma, setPFigma] = useState('');
   const [pFrd, setPFrd] = useState(''); const [pDesc, setPDesc] = useState('');
+  const [pNameError, setPNameError] = useState('');
 
   // Form state - new member
   const [mName, setMName] = useState(''); const [mUsername, setMUsername] = useState('');
@@ -245,7 +246,15 @@ export function ProjectsPage({ user, onProjectClick, filterByQA, teamViewMember,
     onError: (e: any) => toast.error(e.response?.data?.error || 'Failed to add member'),
   });
 
-  const resetProjectForm = () => { setPName(''); setPCode(''); setPType('web'); setPFigma(''); setPFrd(''); setPDesc(''); };
+  const resetProjectForm = () => { setPName(''); setPCode(''); setPType('web'); setPFigma(''); setPFrd(''); setPDesc(''); setPNameError(''); };
+
+  const handleCreateProject = () => {
+    const trimmedName = pName.trim();
+    if (!trimmedName) { setPNameError('Project name is required'); return; }
+    if (trimmedName.length < 2) { setPNameError('Name must be at least 2 characters'); return; }
+    setPNameError('');
+    createMut.mutate({ name: trimmedName, project_code: pCode, app_type: pType, figma_url: pFigma || null, frd_url: pFrd || null, description: pDesc });
+  };
   const resetMemberForm = () => { setMName(''); setMUsername(''); setMPassword(''); setMRole('qa_engineer'); };
 
   const filtered = displayedProjects.filter((p: any) => p.name.toLowerCase().includes(search.toLowerCase()));
@@ -433,7 +442,10 @@ export function ProjectsPage({ user, onProjectClick, filterByQA, teamViewMember,
       {/* Add Project Modal */}
       {showAdd && (
         <Modal title="＋ New Project" onClose={() => setShowAdd(false)}>
-          <Inp label="Project Name" ph="Name of your Project" value={pName} onChange={setPName} req />
+          <div>
+            <Inp label="Project Name" ph="Name of your Project" value={pName} onChange={v => { setPName(v); if (v.trim().length >= 2) setPNameError(''); }} req />
+            {pNameError && <p style={{ color: '#ef4444', fontSize: '11px', fontFamily: 'var(--font-body)', marginTop: '-8px', marginBottom: '10px' }}>{pNameError}</p>}
+          </div>
           <Inp label="Project Code (max 10 chars)" ph="Use the same code as used in JIRA" value={pCode} onChange={v => setPCode(v.toUpperCase().slice(0, 10))} req />
           <Sel label="Application Type" opts={[{ v: 'web', l: '🌐 Web / Web App' }, { v: 'mobile', l: '📱 Mobile App' }, { v: 'both', l: '⚡ Both' }]} value={pType} onChange={setPType} />
           <Inp label="Figma Link" ph="https://figma.com/…" value={pFigma} onChange={setPFigma} />
@@ -443,7 +455,7 @@ export function ProjectsPage({ user, onProjectClick, filterByQA, teamViewMember,
             💡 Automation scripts will be auto-scaffolded based on app type. Figma & FRD can be added later.
           </div>
           <div style={{ display: 'flex', gap: '10px' }}>
-            <Btn onClick={() => createMut.mutate({ name: pName, project_code: pCode, app_type: pType, figma_url: pFigma || null, frd_url: pFrd || null, description: pDesc })} disabled={createMut.isPending || !pName || pCode.length < 2}>
+            <Btn onClick={handleCreateProject} disabled={createMut.isPending || pCode.length < 2}>
               {createMut.isPending ? 'Creating…' : 'Create Project'}
             </Btn>
             <Btn v="ghost" onClick={() => setShowAdd(false)}>Cancel</Btn>

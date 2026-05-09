@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Calendar, LogOut } from 'lucide-react';
+import { Calendar, LogOut, Search } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
@@ -96,27 +96,52 @@ function HRSidebar({ tab, setTab, user, onSignOut, collapsed }: {
 function HRProjectsView({ onProjectClick }: { onProjectClick: (p: any) => void }) {
   const { data, isLoading } = useQuery({ queryKey: ['projects', 'hr'], queryFn: () => getProjects() });
   const projects: any[] = data?.projects || [];
+  const [hrSearch, setHRSearch] = useState('');
+  const [hrFilter, setHRFilter] = useState('');
 
   const STATUS_COLOR: Record<string, string> = {
     active: '#4ade80', in_review: '#60a5fa', on_hold: '#fbbf24', completed: '#a78bfa',
   };
 
+  const filteredProjects = projects.filter(p => {
+    const matchSearch = !hrSearch || p.name.toLowerCase().includes(hrSearch.toLowerCase()) || (p.project_code || '').toLowerCase().includes(hrSearch.toLowerCase());
+    const matchFilter = !hrFilter || p.status === hrFilter;
+    return matchSearch && matchFilter;
+  });
+
   if (isLoading) return (
     <div style={{ padding: '40px', color: C.textDim, fontFamily: "var(--font-body, 'Manrope', sans-serif)", fontSize: '13px' }}>Loading projects…</div>
   );
 
+  const inputStyle: React.CSSProperties = { background: 'var(--qa-input)', border: `1px solid var(--qa-border)`, borderRadius: '8px', padding: '8px 12px', color: C.text, fontSize: '12px', fontFamily: "var(--font-body, 'Manrope', sans-serif)", outline: 'none', width: '100%', boxSizing: 'border-box' };
+
   return (
     <div style={{ padding: '28px 32px' }} className="fu">
-      <div style={{ marginBottom: '24px' }}>
+      <div style={{ marginBottom: '16px' }}>
         <h1 style={{ margin: '0 0 6px', fontSize: '24px', fontWeight: '800', color: C.text, fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>Projects</h1>
-        <div style={{ fontSize: '11px', color: C.textDim, fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>Read-only view · {projects.length} projects</div>
+        <div style={{ fontSize: '11px', color: C.textDim, fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>Read-only view · {filteredProjects.length} of {projects.length} projects</div>
       </div>
 
-      {projects.length === 0 ? (
-        <div style={{ color: C.textMid, fontSize: '13px', fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>No projects found.</div>
+      {/* Search + Filter bar */}
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', alignItems: 'center' }}>
+        <div style={{ position: 'relative', flex: 1 }}>
+          <Search size={13} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: C.textMid, pointerEvents: 'none' }} />
+          <input value={hrSearch} onChange={e => setHRSearch(e.target.value)} placeholder="Search projects…" style={{ ...inputStyle, paddingLeft: '30px' }} />
+        </div>
+        <select value={hrFilter} onChange={e => setHRFilter(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: '130px', paddingRight: '8px' }}>
+          <option value="">All Statuses</option>
+          <option value="active">Active</option>
+          <option value="in_review">In Review</option>
+          <option value="completed">Completed</option>
+          <option value="on_hold">On Hold</option>
+        </select>
+      </div>
+
+      {filteredProjects.length === 0 ? (
+        <div style={{ color: C.textMid, fontSize: '13px', fontFamily: "var(--font-body, 'Manrope', sans-serif)" }}>{projects.length === 0 ? 'No projects found.' : 'No projects match your search.'}</div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-          {projects.map((p: any) => (
+          {filteredProjects.map((p: any) => (
             <GCard key={p.id} hover glow={C.accent} onClick={() => onProjectClick(p)} style={{ padding: '20px', cursor: 'pointer' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                 <div>

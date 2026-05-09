@@ -362,7 +362,7 @@ export function SettingsPage() {
 
   const TABS = [
     ...SETTING_TABS,
-    ...(isAdminOrLead ? [{ id: 'team', l: 'Team' }, { id: 'members', l: 'Members' }] : []),
+    ...(isAdminOrLead ? [{ id: 'team', l: 'QA & HR' }, { id: 'members', l: 'Developers & BA' }] : []),
   ];
 
   const [tab, setTab] = useState('bug_status');

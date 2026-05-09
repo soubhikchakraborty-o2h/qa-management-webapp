@@ -158,12 +158,24 @@ function BugExpandedRow({ bug, user, onClose, projectId, readOnly, roster, proje
   const [assignee, setAssignee] = useState(bug.assignee || '');
   const [developedBy, setDevelopedBy] = useState(bug.developed_by || '');
   const [priority, setPriority] = useState(bug.priority || 'Medium');
+  const [bugModule, setBugModule] = useState(bug.module || '');
+  const [bugSummary, setBugSummary] = useState(bug.summary || '');
+  const [bugStatus, setBugStatus] = useState(bug.status || 'Open');
+  const [savedField, setSavedField] = useState<string | null>(null);
   const [resourceUrl, setResourceUrl] = useState('');
   const [resourceLabel, setResourceLabel] = useState('');
   const [proofResource, setProofResource] = useState<any>(null);
 
   const isQA = ['admin', 'qa_lead', 'qa_engineer'].includes(user.role);
   const isDev = user.role === 'developer';
+
+  const showSaved = (field: string) => { setSavedField(field); setTimeout(() => setSavedField(null), 2000); };
+
+  const autoSaveBug = (field: string, value: any) => {
+    updateBug(bug.id, { [field]: value })
+      .then(() => { qc.invalidateQueries({ queryKey: ['bugs', projectId] }); showSaved(field); })
+      .catch(() => toast.error('Failed to save'));
+  };
 
   const rosterAddMut = useMutation({
     mutationFn: (name: string) => updateRoster(projectId, { name, action: 'add' }),
@@ -215,28 +227,48 @@ function BugExpandedRow({ bug, user, onClose, projectId, readOnly, roster, proje
             </div>
           )}
 
+          {/* Module + Summary + Status inline edit */}
+          {isQA && !readOnly && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 20px', marginBottom: '12px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '700', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.07em', textTransform: 'uppercase', marginBottom: '5px' }}>
+                  Module {savedField === 'module' && <span style={{ color: C.green }}>Saved ✓</span>}
+                </div>
+                <input value={bugModule} onChange={e => setBugModule(e.target.value)} onBlur={e => autoSaveBug('module', e.target.value)} style={{ width: '100%', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '7px 10px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none', boxSizing: 'border-box' }} placeholder="Module name" />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '700', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.07em', textTransform: 'uppercase', marginBottom: '5px' }}>
+                  Bug Status {savedField === 'status' && <span style={{ color: C.green }}>Saved ✓</span>}
+                </div>
+                <select value={bugStatus} onChange={e => { setBugStatus(e.target.value); autoSaveBug('status', e.target.value); }} style={{ width: '100%', background: 'var(--qa-select-bg)', border: `1px solid ${STATUS_COLORS[bugStatus] || C.border}`, borderRadius: '8px', padding: '7px 10px', color: STATUS_COLORS[bugStatus] || C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none', cursor: 'pointer' }}>
+                  {['Open','In Progress','Fixed (To Test)','Closed',"Won't Fix (Invalid)"].map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div style={{ gridColumn: '1/-1' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '700', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.07em', textTransform: 'uppercase', marginBottom: '5px' }}>
+                  Summary {savedField === 'summary' && <span style={{ color: C.green }}>Saved ✓</span>}
+                </div>
+                <textarea value={bugSummary} onChange={e => setBugSummary(e.target.value)} onBlur={e => autoSaveBug('summary', e.target.value)} rows={2} style={{ width: '100%', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '7px 10px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none', resize: 'vertical', boxSizing: 'border-box' }} placeholder="Bug summary" />
+              </div>
+            </div>
+          )}
+
           {/* Assignee + Developed By */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 20px', marginBottom: '12px' }}>
             <div>
               <div style={{ fontSize: '10px', fontWeight: '700', color: C.blue, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.07em', textTransform: 'uppercase', marginBottom: '6px' }}>Assignee</div>
               {!readOnly ? (
-                <DeveloperComboInput value={assignee} onChange={setAssignee} roster={roster} onNewName={n => rosterAddMut.mutate(n)} borderColor={C.blue} />
+                <TypeSearch value={assignee} onChange={v => { setAssignee(v); if (v) rosterAddMut.mutate(v); }} type="all" placeholder="Search developers…" allowCustom={true} />
               ) : (
-                <select value={assignee} disabled style={{ width: '100%', background: 'var(--qa-select-bg)', border: `1px solid ${C.blue}35`, borderRadius: '9px', padding: '9px 12px', color: C.text, fontSize: '13px', fontFamily: "'JetBrains Mono',monospace", outline: 'none', opacity: 0.6 }}>
-                  <option value="">Unassigned</option>
-                  {roster.map(n => <option key={n} value={n}>{n}</option>)}
-                </select>
+                <div style={{ padding: '9px 12px', background: 'var(--qa-select-bg)', border: `1px solid ${C.blue}35`, borderRadius: '9px', fontSize: '13px', fontFamily: "'JetBrains Mono',monospace", color: assignee ? C.text : C.textDim, opacity: 0.8 }}>{assignee || 'Unassigned'}</div>
               )}
             </div>
             <div>
               <div style={{ fontSize: '10px', fontWeight: '700', color: C.green, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.07em', textTransform: 'uppercase', marginBottom: '6px' }}>Developed By</div>
               {!readOnly ? (
-                <DeveloperComboInput value={developedBy} onChange={setDevelopedBy} roster={roster} onNewName={n => rosterAddMut.mutate(n)} borderColor={C.green} />
+                <TypeSearch value={developedBy} onChange={v => { setDevelopedBy(v); if (v) rosterAddMut.mutate(v); }} type="all" placeholder="Search developers…" allowCustom={true} />
               ) : (
-                <select value={developedBy} disabled style={{ width: '100%', background: 'var(--qa-select-bg)', border: `1px solid ${C.green}35`, borderRadius: '9px', padding: '9px 12px', color: C.text, fontSize: '13px', fontFamily: "'JetBrains Mono',monospace", outline: 'none', opacity: 0.6 }}>
-                  <option value="">Not set</option>
-                  {roster.map(n => <option key={n} value={n}>{n}</option>)}
-                </select>
+                <div style={{ padding: '9px 12px', background: 'var(--qa-select-bg)', border: `1px solid ${C.green}35`, borderRadius: '9px', fontSize: '13px', fontFamily: "'JetBrains Mono',monospace", color: developedBy ? C.text : C.textDim, opacity: 0.8 }}>{developedBy || 'Not set'}</div>
               )}
             </div>
           </div>
@@ -274,7 +306,7 @@ function BugExpandedRow({ bug, user, onClose, projectId, readOnly, roster, proje
 
           {/* Resources / Proof */}
           <div style={{ marginBottom: '14px' }}>
-            <div style={{ fontSize: '10px', fontWeight: '700', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.07em', textTransform: 'uppercase', marginBottom: '8px' }}>📎 Resources / Proof</div>
+            <div style={{ fontSize: '10px', fontWeight: '700', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.07em', textTransform: 'uppercase', marginBottom: '8px' }}>Resources / Proof</div>
             {resources.length > 0 && (
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
                 {resources.map((r: any) => (
@@ -289,7 +321,7 @@ function BugExpandedRow({ bug, user, onClose, projectId, readOnly, roster, proje
                         </div>
                       )}
                     </div>
-                    {!readOnly && (
+                    {!readOnly && isQA && (
                       <button onClick={() => deleteResourceMut.mutate(r.id)} style={{ position: 'absolute', top: '-6px', right: '-6px', background: C.red, border: 'none', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '10px', color: '#fff', lineHeight: 1, padding: 0 }}>×</button>
                     )}
                   </div>
@@ -298,8 +330,8 @@ function BugExpandedRow({ bug, user, onClose, projectId, readOnly, roster, proje
             )}
             {!readOnly && (
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <input value={resourceUrl} onChange={e => setResourceUrl(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleAddResource(); }} placeholder="Paste screenshot URL, drive link, or recording…" style={{ flex: 1, background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '8px 12px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }} />
                 <input value={resourceLabel} onChange={e => setResourceLabel(e.target.value)} placeholder="Label (optional)" style={{ width: '130px', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '8px 12px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }} />
+                <input value={resourceUrl} onChange={e => setResourceUrl(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleAddResource(); }} placeholder="Paste screenshot URL, drive link, or recording…" style={{ flex: 1, background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '8px 12px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }} />
                 <Btn sm v="ghost" onClick={handleAddResource} disabled={addResourceMut.isPending || !resourceUrl.trim()}>＋ Add</Btn>
               </div>
             )}
@@ -342,13 +374,44 @@ function TCExpandedRow({ tc, user, onClose, projectId, readOnly }: { tc: any; us
   const [testResult, setTestResult] = useState(tc.test_result);
   const [actualResult, setActualResult] = useState(tc.actual_result || '');
   const actualResultTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [savedField, setSavedField] = useState<string | null>(null);
+
+  // Editable fields state
+  const initStepsText = Array.isArray(tc.steps) ? tc.steps.map((s: any, i: number) => typeof s === 'object' ? `${i + 1}. ${s.action || s}` : `${i + 1}. ${s}`).join('\n') : tc.steps || '';
+  const [tcModule, setTcModule] = useState(tc.module || '');
+  const [tcSummary, setTcSummary] = useState(tc.summary || '');
+  const [tcPriority, setTcPriority] = useState(tc.priority || 'Medium');
+  const [tcPlatform, setTcPlatform] = useState(tc.platform || 'Web');
+  const [tcLabels, setTcLabels] = useState<string[]>(tc.labels || []);
+  const [tcPreconditions, setTcPreconditions] = useState(tc.preconditions || '');
+  const [tcStepsText, setTcStepsText] = useState(initStepsText);
+  const [tcExpected, setTcExpected] = useState(tc.expected_result || '');
 
   const { data: comments = [] } = useQuery({ queryKey: ['comments', tc.id], queryFn: () => getComments('test_case', tc.id) });
+  const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: getSettings });
+  const labelOptions: string[] = (settings?.label || []).map((s: any) => s.value);
+  const platformOptions: string[] = (settings?.platform || []).map((s: any) => s.value).filter(Boolean);
+  const effectivePlatforms = platformOptions.length > 0 ? platformOptions : ['Web', 'Android', 'iOS', 'Both'];
+
   const isQA = ['admin', 'qa_lead', 'qa_engineer'].includes(user.role);
+  const canEditFields = isQA && !readOnly;
+
+  const showSaved = (field: string) => { setSavedField(field); setTimeout(() => setSavedField(null), 2000); };
+
+  const autoSave = (field: string, value: any) => {
+    updateTestCase(tc.id, { [field]: value })
+      .then(() => { qc.invalidateQueries({ queryKey: ['testcases', projectId] }); showSaved(field); })
+      .catch(() => toast.error('Failed to save'));
+  };
+
+  const autoSaveSteps = (raw: string) => {
+    const steps = raw.split('\n').map(s => s.trim()).filter(Boolean).map(s => s.replace(/^\d+\.\s*/, ''));
+    autoSave('steps', steps);
+  };
 
   const updateMut = useMutation({
     mutationFn: (data: any) => updateTestCase(tc.id, data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['testcases', projectId] }); toast.success('Test case updated'); onClose(); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['testcases', projectId] }); showSaved('status'); },
   });
 
   const commentMut = useMutation({
@@ -361,47 +424,99 @@ function TCExpandedRow({ tc, user, onClose, projectId, readOnly }: { tc: any; us
     commentMut.mutate({ entity_type: 'test_case', entity_id: tc.id, author_name: user.name, author_type: user.role === 'developer' ? 'developer' : 'qa', author_id: user.id || null, body: comment });
   };
 
-  const stepsText = Array.isArray(tc.steps) ? tc.steps.map((s: any, i: number) => typeof s === 'object' ? `${i + 1}. ${s.action || s}` : `${i + 1}. ${s}`).join('\n') : tc.steps || '';
+  const inStyle: React.CSSProperties = { width: '100%', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '7px 10px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none', boxSizing: 'border-box' };
+  const lblStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '700', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '5px' };
 
   return (
     <tr>
       <td colSpan={10} style={{ padding: 0 }}>
         <div style={{ padding: '16px 20px', background: 'rgba(59,130,246,0.03)', borderTop: '1px solid rgba(59,130,246,0.1)', borderBottom: `1px solid ${C.border}` }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px 20px', marginBottom: '14px' }}>
-            <div style={{ gridColumn: '1/-1', padding: '12px 16px', background: 'rgba(255,255,255,.02)', border: `1px solid ${C.border}`, borderRadius: '9px' }}>
-              <div style={{ fontSize: '10px', fontWeight: '700', color: C.textDim, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '8px' }}>STEPS</div>
-              <div style={{ color: C.text, fontSize: '12px', lineHeight: '1.9', whiteSpace: 'pre-wrap' }}>{stepsText || tc.preconditions || '—'}</div>
-              {tc.expected_result && (
-                <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: `1px solid ${C.border}` }}>
-                  <div style={{ fontSize: '10px', fontWeight: '700', color: C.textDim, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '6px' }}>EXPECTED RESULT</div>
-                  <div style={{ color: C.green, fontSize: '12px', lineHeight: '1.6' }}>{tc.expected_result}</div>
-                </div>
-              )}
+
+          {/* Editable fields grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 20px', marginBottom: '12px' }}>
+            <div>
+              <div style={lblStyle}>Module {savedField === 'module' && <span style={{ color: C.green, fontWeight: 700 }}>Saved ✓</span>}</div>
+              {canEditFields ? (
+                <input value={tcModule} onChange={e => setTcModule(e.target.value)} onBlur={e => autoSave('module', e.target.value)} style={inStyle} placeholder="e.g. Authentication" />
+              ) : <div style={{ fontSize: '12px', color: C.text, fontFamily: "'JetBrains Mono',monospace" }}>{tc.module || '—'}</div>}
             </div>
-            {isQA && <>
+            <div style={{ gridColumn: '1/-1' }}>
+              <div style={lblStyle}>Summary {savedField === 'summary' && <span style={{ color: C.green, fontWeight: 700 }}>Saved ✓</span>}</div>
+              {canEditFields ? (
+                <input value={tcSummary} onChange={e => setTcSummary(e.target.value)} onBlur={e => autoSave('summary', e.target.value)} style={inStyle} placeholder="What is being tested?" />
+              ) : <div style={{ fontSize: '12px', color: C.text, fontFamily: "'JetBrains Mono',monospace" }}>{tc.summary || '—'}</div>}
+            </div>
+            <div>
+              <div style={lblStyle}>Priority {savedField === 'priority' && <span style={{ color: C.green, fontWeight: 700 }}>Saved ✓</span>}</div>
+              {canEditFields ? (
+                <select value={tcPriority} onChange={e => { setTcPriority(e.target.value); autoSave('priority', e.target.value); }} style={{ ...inStyle, cursor: 'pointer', color: PRIORITY_COLORS[tcPriority] || C.text, border: `1px solid ${PRIORITY_COLORS[tcPriority] || C.border}` } as React.CSSProperties}>
+                  {['Critical','High','Medium','Low'].map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              ) : <Chip text={tc.priority} color={PRIORITY_COLORS[tc.priority]} />}
+            </div>
+            <div>
+              <div style={lblStyle}>Platform {savedField === 'platform' && <span style={{ color: C.green, fontWeight: 700 }}>Saved ✓</span>}</div>
+              {canEditFields ? (
+                <select value={tcPlatform} onChange={e => { setTcPlatform(e.target.value); autoSave('platform', e.target.value); }} style={{ ...inStyle, cursor: 'pointer' } as React.CSSProperties}>
+                  {effectivePlatforms.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              ) : <Chip text={tc.platform} color={PLATFORM_COLORS[tc.platform] || C.blue} />}
+            </div>
+            <div style={{ gridColumn: '1/-1' }}>
+              <div style={lblStyle}>Labels {savedField === 'labels' && <span style={{ color: C.green, fontWeight: 700 }}>Saved ✓</span>}</div>
+              {canEditFields ? (
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {(labelOptions.length > 0 ? labelOptions : ['Smoke','Regression','Sanity','Integration','E2E']).map((l: string) => {
+                    const sel = tcLabels.includes(l);
+                    const col = LABEL_COLORS[l] || C.accent;
+                    return (
+                      <div key={l} onClick={() => { const next = sel ? tcLabels.filter(x => x !== l) : [...tcLabels, l]; setTcLabels(next); autoSave('labels', next); }}
+                        style={{ cursor: 'pointer', padding: '3px 10px', borderRadius: '5px', fontSize: '11px', fontFamily: "'JetBrains Mono',monospace", fontWeight: 600, transition: 'all 0.15s', background: sel ? col + '20' : 'var(--qa-input)', border: `1px solid ${sel ? col + '50' : C.border}`, color: sel ? col : C.textMid }}>
+                        {sel && <span style={{ marginRight: '3px', fontSize: '9px' }}>✓</span>}{l}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>{(tc.labels || []).map((l: string) => <Chip key={l} text={l} color={LABEL_COLORS[l] || C.textDim} sm />)}</div>}
+            </div>
+            <div style={{ gridColumn: '1/-1' }}>
+              <div style={lblStyle}>Preconditions {savedField === 'preconditions' && <span style={{ color: C.green, fontWeight: 700 }}>Saved ✓</span>}</div>
+              {canEditFields ? (
+                <textarea value={tcPreconditions} onChange={e => setTcPreconditions(e.target.value)} onBlur={e => autoSave('preconditions', e.target.value)} rows={2} placeholder="What must be true before executing?" style={{ ...inStyle, resize: 'vertical', lineHeight: '1.6' } as React.CSSProperties} />
+              ) : <div style={{ fontSize: '12px', color: C.text, fontFamily: "'JetBrains Mono',monospace", whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{tc.preconditions || '—'}</div>}
+            </div>
+            <div style={{ gridColumn: '1/-1' }}>
+              <div style={lblStyle}>Steps {savedField === 'steps' && <span style={{ color: C.green, fontWeight: 700 }}>Saved ✓</span>}</div>
+              {canEditFields ? (
+                <textarea value={tcStepsText} onChange={e => setTcStepsText(e.target.value)} onBlur={e => autoSaveSteps(e.target.value)} rows={4} placeholder={'1. Navigate to...\n2. Enter...\n3. Click...'} style={{ ...inStyle, resize: 'vertical', lineHeight: '1.7' } as React.CSSProperties} />
+              ) : <div style={{ fontSize: '12px', color: C.text, fontFamily: "'JetBrains Mono',monospace", whiteSpace: 'pre-wrap', lineHeight: 1.9 }}>{initStepsText || '—'}</div>}
+            </div>
+            <div style={{ gridColumn: '1/-1' }}>
+              <div style={lblStyle}>Expected Result {savedField === 'expected_result' && <span style={{ color: C.green, fontWeight: 700 }}>Saved ✓</span>}</div>
+              {canEditFields ? (
+                <textarea value={tcExpected} onChange={e => setTcExpected(e.target.value)} onBlur={e => autoSave('expected_result', e.target.value)} rows={2} placeholder="What should happen?" style={{ ...inStyle, resize: 'vertical', lineHeight: '1.6', borderColor: `${C.green}40` } as React.CSSProperties} />
+              ) : <div style={{ fontSize: '12px', color: C.green, fontFamily: "'JetBrains Mono',monospace", lineHeight: 1.6 }}>{tc.expected_result || '—'}</div>}
+            </div>
+          </div>
+
+          {/* Execution Status + Test Result */}
+          {isQA && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px 20px', marginBottom: '14px' }}>
               <div>
-                <div style={{ fontSize: '10px', fontWeight: '700', color: C.accent, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.07em', textTransform: 'uppercase', marginBottom: '6px' }}>Execution Status</div>
-                <select value={execStatus} onChange={e => setExecStatus(e.target.value)} style={{ width: '100%', background: 'var(--qa-select-bg)', border: `1px solid ${STATUS_COLORS[execStatus] || C.border}`, borderRadius: '9px', padding: '9px 12px', color: STATUS_COLORS[execStatus] || C.text, fontSize: '13px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }}>
+                <div style={lblStyle}>Execution Status {savedField === 'status' && <span style={{ color: C.green, fontWeight: 700 }}>Saved ✓</span>}</div>
+                <select value={execStatus} onChange={e => setExecStatus(e.target.value)} disabled={readOnly} style={{ width: '100%', background: 'var(--qa-select-bg)', border: `1px solid ${STATUS_COLORS[execStatus] || C.border}`, borderRadius: '9px', padding: '9px 12px', color: STATUS_COLORS[execStatus] || C.text, fontSize: '13px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }}>
                   {['Not Executed','Executed'].map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
               <div>
-                <div style={{ fontSize: '10px', fontWeight: '700', color: C.accent, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.07em', textTransform: 'uppercase', marginBottom: '6px' }}>Test Result</div>
-                <select value={testResult} onChange={e => {
-                  const val = e.target.value;
-                  setTestResult(val);
-                  if (val !== 'Fail') {
-                    setActualResult('');
-                  } else {
-                    setTimeout(() => document.getElementById(`actual-result-${tc.id}`)?.focus(), 100);
-                  }
-                }} style={{ width: '100%', background: 'var(--qa-select-bg)', border: `1px solid ${STATUS_COLORS[testResult] || C.border}`, borderRadius: '9px', padding: '9px 12px', color: STATUS_COLORS[testResult] || C.text, fontSize: '13px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }}>
+                <div style={lblStyle}>Test Result</div>
+                <select value={testResult} onChange={e => { const val = e.target.value; setTestResult(val); if (val !== 'Fail') { setActualResult(''); } else { setTimeout(() => document.getElementById(`actual-result-${tc.id}`)?.focus(), 100); } }} disabled={readOnly} style={{ width: '100%', background: 'var(--qa-select-bg)', border: `1px solid ${STATUS_COLORS[testResult] || C.border}`, borderRadius: '9px', padding: '9px 12px', color: STATUS_COLORS[testResult] || C.text, fontSize: '13px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }}>
                   {['N/A','Pass','Fail','Blocked'].map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
               {testResult === 'Fail' && (
                 <div style={{ gridColumn: 'span 3' }}>
-                  <div style={{ fontSize: '10px', fontWeight: '700', color: '#ef4444', fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.07em', textTransform: 'uppercase', marginBottom: '6px' }}>⚠ Actual Result</div>
+                  <div style={lblStyle}>⚠ Actual Result {savedField === 'actual_result' && <span style={{ color: C.green, fontWeight: 700 }}>Saved ✓</span>}</div>
                   <textarea
                     id={`actual-result-${tc.id}`}
                     value={actualResult}
@@ -410,7 +525,7 @@ function TCExpandedRow({ tc, user, onClose, projectId, readOnly }: { tc: any; us
                       setActualResult(val);
                       if (actualResultTimer.current) clearTimeout(actualResultTimer.current);
                       actualResultTimer.current = setTimeout(() => {
-                        updateTestCase(tc.id, { actual_result: val }).then(() => qc.invalidateQueries({ queryKey: ['testcases', projectId] }));
+                        updateTestCase(tc.id, { actual_result: val }).then(() => { qc.invalidateQueries({ queryKey: ['testcases', projectId] }); showSaved('actual_result'); });
                       }, 800);
                     }}
                     placeholder="Describe what actually happened..."
@@ -420,8 +535,8 @@ function TCExpandedRow({ tc, user, onClose, projectId, readOnly }: { tc: any; us
                   />
                 </div>
               )}
-            </>}
-          </div>
+            </div>
+          )}
 
           {/* Comments */}
           <div style={{ marginBottom: '12px' }}>
@@ -532,6 +647,9 @@ function ImportTestCasesModal({ projectCode, onClose, onImport, isImporting }: {
   };
 
   const handleSheetImport = async () => {
+    setError('');
+    if (!sheetUrl.trim()) { setError('Please enter a Google Sheets URL'); return; }
+    if (!sheetUrl.includes('docs.google.com/spreadsheets')) { setError('Invalid URL. Please paste a Google Sheets link'); return; }
     const match = sheetUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
     if (!match) { setError('Invalid Google Sheets URL'); return; }
     const sheetId = match[1];
@@ -539,12 +657,17 @@ function ImportTestCasesModal({ projectCode, onClose, onImport, isImporting }: {
     const gid = gidMatch ? gidMatch[1] : '0';
     const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
     setLoading(true);
-    setError('');
     try {
       const resp = await fetch(csvUrl);
-      if (!resp.ok) { setError('Cannot fetch sheet. Ensure it is set to "Anyone with link can view"'); setLoading(false); return; }
+      if (resp.status === 401 || resp.status === 403) {
+        setError('Cannot access this sheet. Please set sharing to "Anyone with the link can view" in Google Sheets');
+        setLoading(false); return;
+      }
+      if (!resp.ok) { setError(`Failed to fetch sheet (Error ${resp.status}). Check the URL and permissions.`); setLoading(false); return; }
       const text = await resp.text();
+      if (!text || text.trim().length === 0) { setError('The sheet appears to be empty. Please check the sheet has data.'); setLoading(false); return; }
       const result = Papa.parse(text, { header: true, skipEmptyLines: true, transformHeader: (h: string) => h.trim() });
+      if (!result.data || result.data.length === 0) { setError('No data rows found in sheet. Make sure the sheet has headers and data.'); setLoading(false); return; }
       console.log('[TC Import] Headers:', result.meta.fields);
       setPreview((result.data as any[]).map(normalizeRow));
     } catch {
@@ -740,18 +863,27 @@ function ImportBugsModal({ projectCode, onClose, onImport }: {
   };
 
   const handleSheetImport = async () => {
+    setError('');
+    if (!sheetUrl.trim()) { setError('Please enter a Google Sheets URL'); return; }
+    if (!sheetUrl.includes('docs.google.com/spreadsheets')) { setError('Invalid URL. Please paste a Google Sheets link'); return; }
     const match = sheetUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
     if (!match) { setError('Invalid Google Sheets URL'); return; }
     const sheetId = match[1];
     const gidMatch = sheetUrl.match(/[?&#]gid=([0-9]+)/);
     const gid = gidMatch ? gidMatch[1] : '0';
     const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
-    setLoading(true); setError('');
+    setLoading(true);
     try {
       const resp = await fetch(csvUrl);
-      if (!resp.ok) { setError('Cannot fetch sheet. Ensure it is set to "Anyone with link can view"'); setLoading(false); return; }
+      if (resp.status === 401 || resp.status === 403) {
+        setError('Cannot access this sheet. Please set sharing to "Anyone with the link can view" in Google Sheets');
+        setLoading(false); return;
+      }
+      if (!resp.ok) { setError(`Failed to fetch sheet (Error ${resp.status}). Check the URL and permissions.`); setLoading(false); return; }
       const text = await resp.text();
+      if (!text || text.trim().length === 0) { setError('The sheet appears to be empty. Please check the sheet has data.'); setLoading(false); return; }
       const result = Papa.parse(text, { header: true, skipEmptyLines: true, transformHeader: (h: string) => h.trim() });
+      if (!result.data || result.data.length === 0) { setError('No data rows found in sheet. Make sure the sheet has headers and data.'); setLoading(false); return; }
       console.log('[Bug Import] Headers:', result.meta.fields);
       setPreview((result.data as any[]).map(normalizeBugRow));
     } catch {
@@ -850,8 +982,11 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
   const [addDoc, setAddDoc] = useState(false);
   const [docLabel, setDocLabel] = useState('');
   const [docUrl, setDocUrl] = useState('');
+  const [docFile, setDocFile] = useState<File | null>(null);
   const [docCategory, setDocCategory] = useState('figma');
   const [docType, setDocType] = useState('link');
+
+  const TERMINAL_STATUSES = ['Closed', "Won't Fix (Invalid)"];
 
   const KANBAN_STATUSES = [
     { label: 'Open', color: '#ef4444' },
@@ -885,6 +1020,21 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
   const [showEditCredPassword, setShowEditCredPassword] = useState(false);
   const [editCredPending, setEditCredPending] = useState(false);
 
+  // Local project field overrides — updated immediately after mutation success so UI reflects changes without page refresh
+  const [localFigmaUrl, setLocalFigmaUrl] = useState<string | null>(project.figma_url || null);
+  const [localFrdUrl, setLocalFrdUrl] = useState<string | null>(project.frd_url || null);
+  const [localProjectDetails, setLocalProjectDetails] = useState({
+    start_date: project.start_date || '',
+    end_date: project.end_date || '',
+    ba_name: project.ba_name || '',
+    designer_name: project.designer_name || '',
+    project_type: project.project_type || '',
+    contract_type: project.contract_type || 'T&M',
+    tl_name: project.tl_name || '',
+    pm_name: project.pm_name || '',
+    team_size: project.team_size ?? 0,
+  });
+
   // Project details editing
   const [editingDetails, setEditingDetails] = useState(false);
   const [detailStartDate, setDetailStartDate] = useState(project.start_date || '');
@@ -892,11 +1042,19 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
   const [detailBAName, setDetailBAName] = useState(project.ba_name || '');
   const [detailDesignerName, setDetailDesignerName] = useState(project.designer_name || '');
   const [detailProjectType, setDetailProjectType] = useState(project.project_type || '');
+  const [detailContractType, setDetailContractType] = useState(project.contract_type || 'T&M');
+  const [detailTLName, setDetailTLName] = useState(project.tl_name || '');
+  const [detailPMName, setDetailPMName] = useState(project.pm_name || '');
+  const [detailTeamSize, setDetailTeamSize] = useState<string>(project.team_size ? String(project.team_size) : '');
+  const [detailsSaved, setDetailsSaved] = useState<string | null>(null);
+  const showDetailSaved = (field: string) => { setDetailsSaved(field); setTimeout(() => setDetailsSaved(null), 2000); };
 
   // Bug form
   const [bModule, setBModule] = useState(''); const [bSummary, setBSummary] = useState('');
   const [bAssignee, setBAssignee] = useState(''); const [bDevelopedBy, setBDevelopedBy] = useState('');
   const [bStatus, setBStatus] = useState('Open'); const [bPriority, setBPriority] = useState('Medium');
+  const [bErrors, setBErrors] = useState<Record<string, string>>({});
+  const [endDateError, setEndDateError] = useState('');
   const [bQAStatus, setBQAStatus] = useState('Open'); const [bQAComment, setBQAComment] = useState('');
 
   // Bulk select
@@ -911,6 +1069,15 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
   const [tcPriority, setTcPriority] = useState('Medium'); const [tcPlatform, setTcPlatform] = useState('Web');
   const [tcPre, setTcPre] = useState(''); const [tcExec, setTcExec] = useState('Not Executed');
   const [tcLabels, setTcLabels] = useState<string[]>([]); const [tcSteps, setTcSteps] = useState('');
+
+  // TC pagination + QA filter
+  const TC_PAGE_SIZE = 25;
+  const [tcPage, setTCPage] = useState(1);
+  const [tcQAFilter, setTCQAFilter] = useState('');
+
+  // Bug resource links for new bug form
+  const [newBugLinks, setNewBugLinks] = useState<{ label: string; url: string }[]>([]);
+  const [bugLinkInput, setBugLinkInput] = useState({ label: '', url: '' });
 
 
   const { data: testCases = [], isSuccess: tcFetched } = useQuery({ queryKey: ['testcases', project.id], queryFn: () => getTestCases(project.id), enabled: page === 'testcases' || page === 'overview' });
@@ -1099,9 +1266,25 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
 
   const addDocMut = useMutation({
     mutationFn: (data: any) => addDocument(data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['documents', project.id] }); setAddDoc(false); setDocLabel(''); setDocUrl(''); setDocCategory('figma'); setDocType('link'); toast.success('Document added'); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['documents', project.id] }); setAddDoc(false); setDocLabel(''); setDocUrl(''); setDocFile(null); setDocCategory('figma'); setDocType('link'); toast.success('Document added'); },
     onError: () => toast.error('Failed to add document'),
   });
+
+  const handleAddDocSubmit = async () => {
+    if (!docLabel) return;
+    if (docType === 'file') {
+      if (!docFile) { toast.error('Please choose a file'); return; }
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const dataUrl = ev.target?.result as string;
+        addDocMut.mutate({ project_id: project.id, type: 'file', label: docLabel, url: dataUrl, file_size: docFile.size, file_mime: docFile.type, doc_category: docCategory });
+      };
+      reader.readAsDataURL(docFile);
+    } else {
+      if (!docUrl) { toast.error('Please enter a URL'); return; }
+      addDocMut.mutate({ project_id: project.id, type: 'link', label: docLabel, url: docUrl, doc_category: docCategory });
+    }
+  };
 
   const bulkDeleteBugsMut = useMutation({
     mutationFn: (ids: string[]) => Promise.all(ids.map(id => deleteBug(id))),
@@ -1151,6 +1334,10 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
     else if (type === 'doc') deleteDocMut.mutate(id);
     else if (type === 'bulkBug') bulkDeleteBugsMut.mutate(id.split(','));
     else if (type === 'bulkTC') bulkDeleteTCsMut.mutate(id.split(','));
+    else if (type === 'credential') {
+      setCreds(prev => prev.filter((c: any) => c.id !== id));
+      deleteCredential(project.id, id).catch(() => toast.error('Failed to delete credential'));
+    }
   };
 
   const isDeleting = deleteTCMut.isPending || deleteBugMut.isPending || deleteScriptMut.isPending || deleteDocMut.isPending || bulkDeleteBugsMut.isPending || bulkDeleteTCsMut.isPending;
@@ -1185,7 +1372,15 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
 
   const updateProjectMut = useMutation({
     mutationFn: (data: any) => updateProject(project.id, data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['projects'] }); toast.success('Project updated!'); },
+    onSuccess: (_updated: any, vars: any) => {
+      qc.invalidateQueries({ queryKey: ['projects'] });
+      if (vars.figma_url !== undefined) setLocalFigmaUrl(vars.figma_url || null);
+      if (vars.frd_url !== undefined) setLocalFrdUrl(vars.frd_url || null);
+      if (vars.start_date !== undefined || vars.end_date !== undefined || vars.ba_name !== undefined || vars.designer_name !== undefined || vars.project_type !== undefined || vars.contract_type !== undefined || vars.tl_name !== undefined || vars.pm_name !== undefined || vars.team_size !== undefined) {
+        setLocalProjectDetails(prev => ({ ...prev, start_date: vars.start_date ?? prev.start_date, end_date: vars.end_date ?? prev.end_date, ba_name: vars.ba_name ?? prev.ba_name, designer_name: vars.designer_name ?? prev.designer_name, project_type: vars.project_type ?? prev.project_type, contract_type: vars.contract_type ?? prev.contract_type, tl_name: vars.tl_name ?? prev.tl_name, pm_name: vars.pm_name ?? prev.pm_name, team_size: vars.team_size ?? prev.team_size }));
+      }
+      toast.success('Project updated!');
+    },
   });
 
   const uploadScriptMut = useMutation({
@@ -1745,9 +1940,20 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                     </div>
                     <div style={{ flex: 1, minWidth: '140px' }}>
                       <div style={{ fontSize: '9.5px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>End Date</div>
-                      <input type="date" value={detailEndDate} onChange={e => setDetailEndDate(e.target.value)}
+                      <input type="date" value={detailEndDate}
+                        min={detailStartDate || undefined}
+                        onChange={e => {
+                          const val = e.target.value;
+                          if (detailStartDate && val && val < detailStartDate) {
+                            setEndDateError('End date cannot be before start date');
+                            return;
+                          }
+                          setEndDateError('');
+                          setDetailEndDate(val);
+                        }}
                         onClick={e => { try { (e.target as HTMLInputElement).showPicker?.(); } catch {} }}
-                        style={{ width: '100%', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '7px 10px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none', cursor: 'pointer' }} />
+                        style={{ width: '100%', background: 'var(--qa-input)', border: `1px solid ${endDateError ? '#ef4444' : C.border}`, borderRadius: '8px', padding: '7px 10px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none', cursor: 'pointer' }} />
+                      {endDateError && <p style={{ color: '#ef4444', fontSize: '10px', fontFamily: 'var(--font-body)', margin: '3px 0 0' }}>{endDateError}</p>}
                     </div>
                   </div>
                   <div>
@@ -1775,39 +1981,88 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                       <option value="external">External</option>
                     </select>
                   </div>
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                  <div>
+                    <div style={{ fontSize: '9.5px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>Contract Type</div>
+                    <select value={detailContractType} onChange={e => setDetailContractType(e.target.value)}
+                      onBlur={() => { updateProjectMut.mutate({ contract_type: detailContractType }); showDetailSaved('contract_type'); }}
+                      style={{ width: '100%', background: 'var(--qa-select-bg)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '8px 10px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }}>
+                      <option value="FTE">FTE</option>
+                      <option value="S&M">S&amp;M — Support &amp; Maintenance</option>
+                      <option value="T&M">T&amp;M — Time &amp; Material</option>
+                      <option value="Fixed Cost">Fixed Cost</option>
+                    </select>
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '9.5px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>
+                      Tech Lead {detailsSaved === 'tl_name' && <span style={{ color: '#10b981', textTransform: 'none' }}>Saved ✓</span>}
+                    </div>
+                    <TypeSearch value={detailTLName} onChange={v => { setDetailTLName(v); updateProjectMut.mutate({ tl_name: v || null }); showDetailSaved('tl_name'); }} type="developer" placeholder="Select tech lead…" allowCustom={false} />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '9.5px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>
+                      Project Manager {detailsSaved === 'pm_name' && <span style={{ color: '#10b981', textTransform: 'none' }}>Saved ✓</span>}
+                    </div>
+                    <TypeSearch value={detailPMName} onChange={v => { setDetailPMName(v); updateProjectMut.mutate({ pm_name: v || null }); showDetailSaved('pm_name'); }} type="ba" placeholder="Select project manager…" allowCustom={false} />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '9.5px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>
+                      Team Size {detailsSaved === 'team_size' && <span style={{ color: '#10b981', textTransform: 'none' }}>Saved ✓</span>}
+                    </div>
+                    <input type="number" min="1" max="500" value={detailTeamSize}
+                      onChange={e => setDetailTeamSize(e.target.value)}
+                      onBlur={e => { updateProjectMut.mutate({ team_size: e.target.value ? parseInt(e.target.value) : null }); showDetailSaved('team_size'); }}
+                      placeholder="e.g. 8"
+                      style={{ width: '100%', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '8px 10px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none', boxSizing: 'border-box' }} />
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '4px', alignItems: 'center' }}>
                     <Btn sm onClick={() => {
-                      updateProjectMut.mutate({ start_date: detailStartDate || null, end_date: detailEndDate || null, ba_name: detailBAName || null, designer_name: detailDesignerName || null, project_type: detailProjectType || null });
+                      updateProjectMut.mutate({ start_date: detailStartDate || null, end_date: detailEndDate || null, ba_name: detailBAName || null, designer_name: detailDesignerName || null, project_type: detailProjectType || null, contract_type: detailContractType || 'T&M', tl_name: detailTLName || null, pm_name: detailPMName || null, team_size: detailTeamSize ? parseInt(detailTeamSize) : null });
                       setEditingDetails(false);
                     }} disabled={updateProjectMut.isPending}>Save</Btn>
                     <Btn sm v="ghost" onClick={() => {
-                      setDetailStartDate(project.start_date || ''); setDetailEndDate(project.end_date || '');
-                      setDetailBAName(project.ba_name || ''); setDetailDesignerName(project.designer_name || '');
-                      setDetailProjectType(project.project_type || ''); setEditingDetails(false);
+                      setDetailStartDate(localProjectDetails.start_date); setDetailEndDate(localProjectDetails.end_date);
+                      setDetailBAName(localProjectDetails.ba_name); setDetailDesignerName(localProjectDetails.designer_name);
+                      setDetailProjectType(localProjectDetails.project_type);
+                      setDetailContractType(localProjectDetails.contract_type);
+                      setDetailTLName(localProjectDetails.tl_name);
+                      setDetailPMName(localProjectDetails.pm_name);
+                      setDetailTeamSize(localProjectDetails.team_size ? String(localProjectDetails.team_size) : '');
+                      setEditingDetails(false);
                     }}>Cancel</Btn>
+                    {detailsSaved && <span style={{ fontSize: '11px', color: '#10b981', fontFamily: "'JetBrains Mono',monospace" }}>Saved ✓</span>}
                   </div>
                 </div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 20px' }}>
                   {[
-                    { l: 'Start Date', v: project.start_date ? new Date(project.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—' },
-                    { l: 'End Date', v: project.end_date ? new Date(project.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—' },
-                    { l: 'Business Analyst', v: project.ba_name || '—' },
-                    { l: 'Designer', v: project.designer_name || '—' },
-                    { l: 'Project Type', v: project.project_type ? project.project_type.charAt(0).toUpperCase() + project.project_type.slice(1) : '—' },
+                    { l: 'Start Date', v: localProjectDetails.start_date ? new Date(localProjectDetails.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—' },
+                    { l: 'End Date', v: localProjectDetails.end_date ? new Date(localProjectDetails.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—' },
+                    { l: 'Business Analyst', v: localProjectDetails.ba_name || '—' },
+                    { l: 'Designer', v: localProjectDetails.designer_name || '—' },
+                    { l: 'Project Type', v: localProjectDetails.project_type ? localProjectDetails.project_type.charAt(0).toUpperCase() + localProjectDetails.project_type.slice(1) : '—' },
+                    { l: 'Tech Lead', v: localProjectDetails.tl_name || '—' },
+                    { l: 'Project Manager', v: localProjectDetails.pm_name || '—' },
+                    { l: 'Team Size', v: localProjectDetails.team_size ? `${localProjectDetails.team_size} members` : '—' },
                   ].map(({ l, v }) => (
                     <div key={l}>
                       <div style={{ fontSize: '9.5px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>{l}</div>
                       <div style={{ fontSize: '12px', color: v === '—' ? C.textDim : C.text, fontFamily: "'JetBrains Mono',monospace", fontWeight: v === '—' ? 400 : 600 }}>{v}</div>
                     </div>
                   ))}
+                  {/* Contract type chip */}
+                  <div>
+                    <div style={{ fontSize: '9.5px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>Contract</div>
+                    <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: '999px', fontSize: '11px', fontWeight: 600, background: 'rgba(59,130,246,0.1)', color: 'var(--qa-accent)', border: '1px solid rgba(59,130,246,0.25)', fontFamily: "var(--font-body,'Manrope',sans-serif)" }}>
+                      {localProjectDetails.contract_type || 'T&M'}
+                    </span>
+                  </div>
                 </div>
               )}
             </GCard>
 
             <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
-              {project.figma_url ? (
-                <a href={project.figma_url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 18px', background: `${C.purple}18`, border: `1px solid ${C.purple}35`, borderRadius: '8px', color: C.purple, textDecoration: 'none', fontFamily: "'JetBrains Mono',monospace", fontSize: '12px', fontWeight: '600' }}><ExternalLink size={14} /> Figma</a>
+              {localFigmaUrl ? (
+                <a href={localFigmaUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 18px', background: `${C.purple}18`, border: `1px solid ${C.purple}35`, borderRadius: '8px', color: C.purple, textDecoration: 'none', fontFamily: "'JetBrains Mono',monospace", fontSize: '12px', fontWeight: '600' }}><ExternalLink size={14} /> Figma</a>
               ) : canEdit ? (
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <input value={figmaInputVal} onChange={e => setFigmaInputVal(e.target.value)} placeholder="Figma URL…" style={{ width: '200px', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '8px 12px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }} />
@@ -1816,8 +2071,8 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
               ) : (
                 <span style={{ fontSize: '12px', color: C.textDim, fontFamily: "'JetBrains Mono',monospace", padding: '9px 0' }}>No Figma linked</span>
               )}
-              {project.frd_url ? (
-                <a href={project.frd_url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 18px', background: `${C.blue}18`, border: `1px solid ${C.blue}35`, borderRadius: '8px', color: C.blue, textDecoration: 'none', fontFamily: "'JetBrains Mono',monospace", fontSize: '12px', fontWeight: '600' }}><FileText size={14} /> FRD</a>
+              {localFrdUrl ? (
+                <a href={localFrdUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 18px', background: `${C.blue}18`, border: `1px solid ${C.blue}35`, borderRadius: '8px', color: C.blue, textDecoration: 'none', fontFamily: "'JetBrains Mono',monospace", fontSize: '12px', fontWeight: '600' }}><FileText size={14} /> FRD</a>
               ) : canEdit ? (
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <input value={frdInputVal} onChange={e => setFrdInputVal(e.target.value)} placeholder="FRD URL…" style={{ width: '200px', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '8px 12px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }} />
@@ -2142,8 +2397,19 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                   const isOver = dragOverColumn === status;
                   return (
                     <div key={status}
-                      onDragOver={e => { if (!canEdit || user.role === 'hr') return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOverColumn(status); }}
-                      onDrop={e => { if (!canEdit || user.role === 'hr') return; e.preventDefault(); if (!draggedBugId) return; saveBugStatusMut.mutate({ id: draggedBugId, status }); setDraggedBugId(null); setDragOverColumn(null); }}
+                      onDragOver={e => { if (user.role === 'hr' || (!canEdit && user.role !== 'developer')) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOverColumn(status); }}
+                      onDrop={e => {
+                        if (user.role === 'hr' || (!canEdit && user.role !== 'developer')) return;
+                        e.preventDefault();
+                        if (!draggedBugId) return;
+                        const draggedBug = (bugs as any[]).find((b: any) => b.id === draggedBugId);
+                        if (draggedBug && TERMINAL_STATUSES.includes(draggedBug.status)) {
+                          toast.error("Cannot move a Closed or Won't Fix bug");
+                          setDraggedBugId(null); setDragOverColumn(null); return;
+                        }
+                        saveBugStatusMut.mutate({ id: draggedBugId, status });
+                        setDraggedBugId(null); setDragOverColumn(null);
+                      }}
                       onDragLeave={() => setDragOverColumn(null)}
                       style={{ background: isOver ? 'rgba(59,130,246,0.08)' : 'var(--qa-card)', border: isOver ? '1px solid rgba(59,130,246,0.4)' : `1px solid ${C.border}`, borderRadius: '12px', padding: '12px', minHeight: '200px', transition: 'background 0.15s, border-color 0.15s' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', paddingBottom: '8px', borderBottom: `1px solid ${C.border}` }}>
@@ -2156,8 +2422,8 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                       {colBugs.length === 0 && <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--qa-text-faint)', fontSize: '10px', fontFamily: "'JetBrains Mono',monospace", opacity: .5 }}>No bugs</div>}
                       {colBugs.map((b: any) => (
                         <div key={b.id}
-                          draggable={canEdit && user.role !== 'hr'}
-                          onDragStart={e => { if (!canEdit || user.role === 'hr') { e.preventDefault(); return; } setDraggedBugId(b.id); e.dataTransfer.effectAllowed = 'move'; }}
+                          draggable={(canEdit || user.role === 'developer') && user.role !== 'hr'}
+                          onDragStart={e => { if (user.role === 'hr' || (!canEdit && user.role !== 'developer')) { e.preventDefault(); return; } setDraggedBugId(b.id); e.dataTransfer.effectAllowed = 'move'; }}
                           onDragEnd={() => { setDraggedBugId(null); setDragOverColumn(null); }}
                           onClick={() => { setBugView('table'); setExpandedBug(b.id); setTimeout(() => document.getElementById(`bug-row-${b.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150); }}
                           style={{ background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderLeft: `3px solid ${col}`, borderRadius: '8px', padding: '10px', marginBottom: '8px', cursor: 'grab', opacity: draggedBugId === b.id ? 0.5 : 1, transition: 'opacity 0.15s, transform 0.15s, border-color 0.15s' }}
@@ -2229,7 +2495,15 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                             <td style={{ padding: '12px 14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><span style={{ fontSize: '12px', color: b.assignee === 'Unassigned' || !b.assignee ? C.textDim : C.text }}>{b.assignee || 'Unassigned'}</span></td>
                             <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}><Chip text={b.priority || 'Medium'} color={PRIORITY_COLORS[b.priority || 'Medium'] || C.textDim} sm /></td>
                             <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
-                              <select value={b.status} disabled={!canUpdateBugStatus} onClick={e => e.stopPropagation()} onChange={e => { e.stopPropagation(); canUpdateBugStatus && saveBugStatusMut.mutate({ id: b.id, status: e.target.value }); }} style={{ background: 'var(--qa-select-bg)', border: `1px solid ${STATUS_COLORS[b.status] || C.border}`, borderRadius: '6px', padding: '4px 8px', color: STATUS_COLORS[b.status] || C.text, fontSize: '11px', fontFamily: "'JetBrains Mono',monospace", cursor: canUpdateBugStatus ? 'pointer' : 'default', outline: 'none', opacity: canUpdateBugStatus ? 1 : 0.7, maxWidth: '100%' }}>
+                              <select value={b.status} disabled={!canUpdateBugStatus} onClick={e => e.stopPropagation()} onChange={e => {
+                                e.stopPropagation();
+                                if (!canUpdateBugStatus) return;
+                                if (TERMINAL_STATUSES.includes(b.status)) {
+                                  toast.error("Cannot change status of a Closed or Won't Fix bug");
+                                  return;
+                                }
+                                saveBugStatusMut.mutate({ id: b.id, status: e.target.value });
+                              }} style={{ background: 'var(--qa-select-bg)', border: `1px solid ${STATUS_COLORS[b.status] || C.border}`, borderRadius: '6px', padding: '4px 8px', color: STATUS_COLORS[b.status] || C.text, fontSize: '11px', fontFamily: "'JetBrains Mono',monospace", cursor: canUpdateBugStatus ? 'pointer' : 'default', outline: 'none', opacity: canUpdateBugStatus ? 1 : 0.7, maxWidth: '100%' }}>
                                 {['Open','In Progress','Fixed (To Test)','Closed',"Won't Fix (Invalid)"].map(s => <option key={s} value={s} style={{ background: C.card, color: C.text }}>{s}</option>)}
                               </select>
                             </td>
@@ -2279,15 +2553,21 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
             {addBug && (
               <Modal title="🐛 Log New Bug" onClose={() => setAddBug(false)} wide>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
-                  <Inp label="Module" ph="Which module?" value={bModule} onChange={setBModule} req />
+                  <div>
+                    <Inp label="Module" ph="Which module?" value={bModule} onChange={v => { setBModule(v); if (v.trim()) setBErrors(e => ({ ...e, module: '' })); }} req />
+                    {bErrors.module && <p style={{ color: '#ef4444', fontSize: '11px', fontFamily: 'var(--font-body)', marginTop: '-8px', marginBottom: '10px' }}>{bErrors.module}</p>}
+                  </div>
                   <div style={{ marginBottom: '14px' }}>
                     <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: C.textMid, marginBottom: '8px', fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.08em', textTransform: 'uppercase' }}>Assignee</label>
-                    <DeveloperComboInput value={bAssignee} onChange={setBAssignee} roster={roster} onNewName={name => rosterMut.mutate({ name, action: 'add' })} borderColor={C.blue} />
+                    <TypeSearch value={bAssignee} onChange={v => { setBAssignee(v); if (v) rosterMut.mutate({ name: v, action: 'add' }); }} type="all" placeholder="Search developers…" allowCustom={true} />
                   </div>
-                  <div style={{ gridColumn: '1/-1' }}><Inp label="Summary" ph="Describe the bug clearly" value={bSummary} onChange={setBSummary} req /></div>
+                  <div style={{ gridColumn: '1/-1' }}>
+                    <Inp label="Summary" ph="Describe the bug clearly" value={bSummary} onChange={v => { setBSummary(v); if (v.trim().length >= 3) setBErrors(e => ({ ...e, summary: '' })); }} req />
+                    {bErrors.summary && <p style={{ color: '#ef4444', fontSize: '11px', fontFamily: 'var(--font-body)', marginTop: '-8px', marginBottom: '10px' }}>{bErrors.summary}</p>}
+                  </div>
                   <div style={{ marginBottom: '14px' }}>
                     <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: C.textMid, marginBottom: '8px', fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.08em', textTransform: 'uppercase' }}>Developed By</label>
-                    <DeveloperComboInput value={bDevelopedBy} onChange={setBDevelopedBy} roster={roster} onNewName={name => rosterMut.mutate({ name, action: 'add' })} borderColor={C.green} />
+                    <TypeSearch value={bDevelopedBy} onChange={v => { setBDevelopedBy(v); if (v) rosterMut.mutate({ name: v, action: 'add' }); }} type="all" placeholder="Search developers…" allowCustom={true} />
                   </div>
                   <Sel label="Bug Status" opts={['Open','In Progress','Fixed (To Test)','Closed',"Won't Fix (Invalid)"]} value={bStatus} onChange={setBStatus} />
                   <Sel label="Priority" opts={['Critical','High','Medium','Low']} value={bPriority} onChange={setBPriority} />
@@ -2296,10 +2576,15 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <Btn v="danger" onClick={() => {
+                    const errs: Record<string, string> = {};
+                    if (!bModule.trim()) errs.module = 'Module is required';
+                    if (!bSummary.trim()) errs.summary = 'Summary is required';
+                    else if (bSummary.trim().length < 3) errs.summary = 'Summary must be at least 3 characters';
+                    if (Object.keys(errs).length > 0) { setBErrors(errs); return; }
                     if (bDevelopedBy) rosterMut.mutate({ name: bDevelopedBy, action: 'add' });
                     if (bAssignee) rosterMut.mutate({ name: bAssignee, action: 'add' });
-                    createBugMut.mutate({ project_id: project.id, module: bModule, summary: bSummary, assignee: bAssignee || null, developed_by: bDevelopedBy || '', status: bStatus, priority: bPriority, qa_status: bQAStatus, qa_comment: bQAComment });
-                  }} disabled={createBugMut.isPending || !bModule || !bSummary}>
+                    createBugMut.mutate({ project_id: project.id, module: bModule.trim(), summary: bSummary.trim(), assignee: bAssignee || null, developed_by: bDevelopedBy || '', status: bStatus, priority: bPriority, qa_status: bQAStatus, qa_comment: bQAComment });
+                  }} disabled={createBugMut.isPending}>
                     {createBugMut.isPending ? 'Logging…' : 'Log Bug'}
                   </Btn>
                   <Btn v="ghost" onClick={() => setAddBug(false)}>Cancel</Btn>
@@ -2329,9 +2614,10 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
             {/* Drop zone — shown when no ZIPs */}
             {(scripts as any[]).filter((s: any) => s.type === 'zip').length === 0 && canEdit && (
               <div
-                onDragOver={e => { e.preventDefault(); setZipDragOver(true); }}
-                onDragLeave={() => setZipDragOver(false)}
-                onDrop={e => { e.preventDefault(); setZipDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleZipFile(f); }}
+                onDragEnter={e => { e.preventDefault(); e.stopPropagation(); setZipDragOver(true); }}
+                onDragOver={e => { e.preventDefault(); e.stopPropagation(); setZipDragOver(true); }}
+                onDragLeave={e => { e.preventDefault(); e.stopPropagation(); setZipDragOver(false); }}
+                onDrop={e => { e.preventDefault(); e.stopPropagation(); setZipDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleZipFile(f); }}
                 style={{ border: `2px dashed ${zipDragOver ? 'var(--qa-accent)' : C.border}`, borderRadius: '12px', padding: '60px 20px', textAlign: 'center', background: zipDragOver ? 'rgba(59,130,246,0.06)' : 'transparent', transition: 'all 0.2s', cursor: 'pointer' }}
               >
                 <Upload size={32} color="var(--qa-text-mid)" style={{ margin: '0 auto 12px', display: 'block' }} />
@@ -2470,9 +2756,8 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                               style={{ padding: '5px', background: 'none', border: `1px solid ${C.border}`, borderRadius: '6px', cursor: 'pointer', color: 'var(--qa-text-mid)', display: 'flex', alignItems: 'center', transition: 'all 0.15s' }}>
                               <Pencil size={13} />
                             </button>
-                            <button onClick={async () => {
-                              if (!window.confirm('Delete this credential?')) return;
-                              try { await deleteCredential(project.id, cred.id); setCreds(prev => prev.filter((c: any) => c.id !== cred.id)); toast.success('Deleted'); } catch { toast.error('Failed'); }
+                            <button onClick={() => {
+                              setConfirmDelete({ type: 'credential', id: cred.id, label: `credential for "${cred.user_role}"` });
                             }}
                               onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(239,68,68,0.3)'; (e.currentTarget as HTMLButtonElement).style.color = C.red; }}
                               onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.border; (e.currentTarget as HTMLButtonElement).style.color = 'var(--qa-text-mid)'; }}
@@ -2602,7 +2887,12 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                             <Chip text={d.type} color={d.type === 'link' ? C.blue : C.yellow} sm />
                           </div>
                           <div style={{ display: 'flex', gap: '6px' }}>
-                            {d.url && <Btn sm v="ghost" onClick={() => window.open(d.url, '_blank')}>Open</Btn>}
+                            {d.url && d.type === 'link' && <Btn sm v="ghost" onClick={() => window.open(d.url, '_blank')}>Open</Btn>}
+                            {d.url && d.type === 'file' && (
+                              <a href={d.url} download={d.label} style={{ textDecoration: 'none' }}>
+                                <Btn sm v="ghost"><Download size={12} style={{ marginRight: '4px', verticalAlign: 'middle' }} />Download</Btn>
+                              </a>
+                            )}
                             {canDelete && <Btn sm v="danger" onClick={() => setConfirmDelete({ type: 'doc', id: d.id, label: d.label })}>Delete</Btn>}
                           </div>
                         </div>
@@ -2614,18 +2904,28 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
             )}
 
             {addDoc && (
-              <Modal title="Add Document" onClose={() => { setAddDoc(false); setDocLabel(''); setDocUrl(''); }}>
+              <Modal title="Add Document" onClose={() => { setAddDoc(false); setDocLabel(''); setDocUrl(''); setDocFile(null); }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
                   <Sel label="Category" opts={['figma','frd','additional']} value={docCategory} onChange={setDocCategory} />
                   <Sel label="Type" opts={['link','file']} value={docType} onChange={setDocType} />
                   <div style={{ gridColumn: '1/-1' }}><Inp label="Label" ph="e.g. Mobile App Figma" value={docLabel} onChange={setDocLabel} req /></div>
                   {docType === 'link' && <div style={{ gridColumn: '1/-1' }}><Inp label="URL" ph="https://…" value={docUrl} onChange={setDocUrl} req /></div>}
+                  {docType === 'file' && (
+                    <div style={{ gridColumn: '1/-1' }}>
+                      <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: 'var(--qa-text-mid)', marginBottom: '8px', fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.08em', textTransform: 'uppercase' }}>File *</label>
+                      <label style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 14px', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', fontSize: '12px', color: docFile ? C.text : 'var(--qa-text-muted)', fontFamily: "'JetBrains Mono',monospace", userSelect: 'none' } as React.CSSProperties}>
+                        <Upload size={14} />
+                        {docFile ? docFile.name : 'Choose file…'}
+                        <input type="file" hidden onChange={e => setDocFile(e.target.files?.[0] || null)} />
+                      </label>
+                    </div>
+                  )}
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <Btn onClick={() => addDocMut.mutate({ project_id: project.id, type: docType, label: docLabel, url: docUrl || null, doc_category: docCategory })} disabled={addDocMut.isPending || !docLabel || (docType === 'link' && !docUrl)}>
+                  <Btn onClick={handleAddDocSubmit} disabled={addDocMut.isPending || !docLabel || (docType === 'link' && !docUrl) || (docType === 'file' && !docFile)}>
                     {addDocMut.isPending ? 'Adding…' : 'Add Document'}
                   </Btn>
-                  <Btn v="ghost" onClick={() => { setAddDoc(false); setDocLabel(''); setDocUrl(''); }}>Cancel</Btn>
+                  <Btn v="ghost" onClick={() => { setAddDoc(false); setDocLabel(''); setDocUrl(''); setDocFile(null); }}>Cancel</Btn>
                 </div>
               </Modal>
             )}
