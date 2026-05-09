@@ -116,7 +116,7 @@ router.patch('/:id', authenticate, async (req, res) => {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
-    const allowed = ['name', 'app_type', 'status', 'figma_url', 'frd_url', 'description', 'project_code', 'additional_qas', 'start_date', 'end_date', 'ba_name', 'designer_name', 'project_type', 'contract_type', 'tl_pm_name', 'team_size'];
+    const allowed = ['name', 'app_type', 'status', 'figma_url', 'frd_url', 'description', 'project_code', 'additional_qas', 'start_date', 'end_date', 'ba_name', 'designer_name', 'project_type', 'contract_type', 'tl_name', 'pm_name', 'team_size'];
     const updates = Object.fromEntries(Object.entries(req.body).filter(([k]) => allowed.includes(k)));
     const { data, error } = await supabase.from('projects').update(updates).eq('id', req.params.id).select().single();
     if (error) throw error;

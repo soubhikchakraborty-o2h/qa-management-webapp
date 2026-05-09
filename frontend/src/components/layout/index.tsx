@@ -105,9 +105,7 @@ export function Sidebar({ page, setPage, user, insideProject, onBackToProjects, 
     } finally { setPwPending(false); }
   };
 
-  const avatarSrc = user.role === 'developer'
-    ? DICEBEAR_URL(user.name)
-    : (user.avatar_url || null);
+  const avatarSrc = user.avatar_url || DICEBEAR_URL(user.name || '');
 
   const modalOverlay: React.CSSProperties = {
     position: 'fixed', inset: 0, background: 'rgba(0,0,0,.65)', backdropFilter: 'blur(10px)',

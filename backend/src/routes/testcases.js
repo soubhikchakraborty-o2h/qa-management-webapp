@@ -22,7 +22,7 @@ router.get('/', async (req, res) => {
       catch { return res.status(401).json({ error: 'Invalid token' }); }
     }
     const { data, error } = await supabase.from('test_cases')
-      .select('*, created_by_user:users!test_cases_created_by_fkey(id,name)')
+      .select('*, created_by_user:users!test_cases_created_by_fkey(id,name,avatar_url)')
       .eq('project_id', project_id).order('test_case_id');
     if (error) throw error;
     res.json(data);
@@ -32,7 +32,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', authenticate, async (req, res) => {
   try {
     const { data, error } = await supabase.from('test_cases')
-      .select('*, created_by_user:users!test_cases_created_by_fkey(id,name)')
+      .select('*, created_by_user:users!test_cases_created_by_fkey(id,name,avatar_url)')
       .eq('id', req.params.id).single();
     if (error) throw error;
     const { data: comments } = await supabase.from('comments')

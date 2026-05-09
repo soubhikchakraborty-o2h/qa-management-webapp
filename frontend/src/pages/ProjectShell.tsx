@@ -258,23 +258,17 @@ function BugExpandedRow({ bug, user, onClose, projectId, readOnly, roster, proje
             <div>
               <div style={{ fontSize: '10px', fontWeight: '700', color: C.blue, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.07em', textTransform: 'uppercase', marginBottom: '6px' }}>Assignee</div>
               {!readOnly ? (
-                <DeveloperComboInput value={assignee} onChange={setAssignee} roster={roster} onNewName={n => rosterAddMut.mutate(n)} borderColor={C.blue} />
+                <TypeSearch value={assignee} onChange={v => { setAssignee(v); if (v) rosterAddMut.mutate(v); }} type="all" placeholder="Search developers…" allowCustom={true} />
               ) : (
-                <select value={assignee} disabled style={{ width: '100%', background: 'var(--qa-select-bg)', border: `1px solid ${C.blue}35`, borderRadius: '9px', padding: '9px 12px', color: C.text, fontSize: '13px', fontFamily: "'JetBrains Mono',monospace", outline: 'none', opacity: 0.6 }}>
-                  <option value="">Unassigned</option>
-                  {roster.map(n => <option key={n} value={n}>{n}</option>)}
-                </select>
+                <div style={{ padding: '9px 12px', background: 'var(--qa-select-bg)', border: `1px solid ${C.blue}35`, borderRadius: '9px', fontSize: '13px', fontFamily: "'JetBrains Mono',monospace", color: assignee ? C.text : C.textDim, opacity: 0.8 }}>{assignee || 'Unassigned'}</div>
               )}
             </div>
             <div>
               <div style={{ fontSize: '10px', fontWeight: '700', color: C.green, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.07em', textTransform: 'uppercase', marginBottom: '6px' }}>Developed By</div>
               {!readOnly ? (
-                <DeveloperComboInput value={developedBy} onChange={setDevelopedBy} roster={roster} onNewName={n => rosterAddMut.mutate(n)} borderColor={C.green} />
+                <TypeSearch value={developedBy} onChange={v => { setDevelopedBy(v); if (v) rosterAddMut.mutate(v); }} type="all" placeholder="Search developers…" allowCustom={true} />
               ) : (
-                <select value={developedBy} disabled style={{ width: '100%', background: 'var(--qa-select-bg)', border: `1px solid ${C.green}35`, borderRadius: '9px', padding: '9px 12px', color: C.text, fontSize: '13px', fontFamily: "'JetBrains Mono',monospace", outline: 'none', opacity: 0.6 }}>
-                  <option value="">Not set</option>
-                  {roster.map(n => <option key={n} value={n}>{n}</option>)}
-                </select>
+                <div style={{ padding: '9px 12px', background: 'var(--qa-select-bg)', border: `1px solid ${C.green}35`, borderRadius: '9px', fontSize: '13px', fontFamily: "'JetBrains Mono',monospace", color: developedBy ? C.text : C.textDim, opacity: 0.8 }}>{developedBy || 'Not set'}</div>
               )}
             </div>
           </div>
@@ -312,7 +306,7 @@ function BugExpandedRow({ bug, user, onClose, projectId, readOnly, roster, proje
 
           {/* Resources / Proof */}
           <div style={{ marginBottom: '14px' }}>
-            <div style={{ fontSize: '10px', fontWeight: '700', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.07em', textTransform: 'uppercase', marginBottom: '8px' }}>📎 Resources / Proof</div>
+            <div style={{ fontSize: '10px', fontWeight: '700', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.07em', textTransform: 'uppercase', marginBottom: '8px' }}>Resources / Proof</div>
             {resources.length > 0 && (
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
                 {resources.map((r: any) => (
@@ -327,7 +321,7 @@ function BugExpandedRow({ bug, user, onClose, projectId, readOnly, roster, proje
                         </div>
                       )}
                     </div>
-                    {!readOnly && (
+                    {!readOnly && isQA && (
                       <button onClick={() => deleteResourceMut.mutate(r.id)} style={{ position: 'absolute', top: '-6px', right: '-6px', background: C.red, border: 'none', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '10px', color: '#fff', lineHeight: 1, padding: 0 }}>×</button>
                     )}
                   </div>
@@ -336,8 +330,8 @@ function BugExpandedRow({ bug, user, onClose, projectId, readOnly, roster, proje
             )}
             {!readOnly && (
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <input value={resourceUrl} onChange={e => setResourceUrl(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleAddResource(); }} placeholder="Paste screenshot URL, drive link, or recording…" style={{ flex: 1, background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '8px 12px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }} />
                 <input value={resourceLabel} onChange={e => setResourceLabel(e.target.value)} placeholder="Label (optional)" style={{ width: '130px', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '8px 12px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }} />
+                <input value={resourceUrl} onChange={e => setResourceUrl(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleAddResource(); }} placeholder="Paste screenshot URL, drive link, or recording…" style={{ flex: 1, background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '8px 12px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none' }} />
                 <Btn sm v="ghost" onClick={handleAddResource} disabled={addResourceMut.isPending || !resourceUrl.trim()}>＋ Add</Btn>
               </div>
             )}
@@ -1036,7 +1030,8 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
     designer_name: project.designer_name || '',
     project_type: project.project_type || '',
     contract_type: project.contract_type || 'T&M',
-    tl_pm_name: project.tl_pm_name || '',
+    tl_name: project.tl_name || '',
+    pm_name: project.pm_name || '',
     team_size: project.team_size ?? 0,
   });
 
@@ -1048,7 +1043,8 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
   const [detailDesignerName, setDetailDesignerName] = useState(project.designer_name || '');
   const [detailProjectType, setDetailProjectType] = useState(project.project_type || '');
   const [detailContractType, setDetailContractType] = useState(project.contract_type || 'T&M');
-  const [detailTLPM, setDetailTLPM] = useState(project.tl_pm_name || '');
+  const [detailTLName, setDetailTLName] = useState(project.tl_name || '');
+  const [detailPMName, setDetailPMName] = useState(project.pm_name || '');
   const [detailTeamSize, setDetailTeamSize] = useState<string>(project.team_size ? String(project.team_size) : '');
   const [detailsSaved, setDetailsSaved] = useState<string | null>(null);
   const showDetailSaved = (field: string) => { setDetailsSaved(field); setTimeout(() => setDetailsSaved(null), 2000); };
@@ -1073,6 +1069,15 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
   const [tcPriority, setTcPriority] = useState('Medium'); const [tcPlatform, setTcPlatform] = useState('Web');
   const [tcPre, setTcPre] = useState(''); const [tcExec, setTcExec] = useState('Not Executed');
   const [tcLabels, setTcLabels] = useState<string[]>([]); const [tcSteps, setTcSteps] = useState('');
+
+  // TC pagination + QA filter
+  const TC_PAGE_SIZE = 25;
+  const [tcPage, setTCPage] = useState(1);
+  const [tcQAFilter, setTCQAFilter] = useState('');
+
+  // Bug resource links for new bug form
+  const [newBugLinks, setNewBugLinks] = useState<{ label: string; url: string }[]>([]);
+  const [bugLinkInput, setBugLinkInput] = useState({ label: '', url: '' });
 
 
   const { data: testCases = [], isSuccess: tcFetched } = useQuery({ queryKey: ['testcases', project.id], queryFn: () => getTestCases(project.id), enabled: page === 'testcases' || page === 'overview' });
@@ -1371,8 +1376,8 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
       qc.invalidateQueries({ queryKey: ['projects'] });
       if (vars.figma_url !== undefined) setLocalFigmaUrl(vars.figma_url || null);
       if (vars.frd_url !== undefined) setLocalFrdUrl(vars.frd_url || null);
-      if (vars.start_date !== undefined || vars.end_date !== undefined || vars.ba_name !== undefined || vars.designer_name !== undefined || vars.project_type !== undefined || vars.contract_type !== undefined || vars.tl_pm_name !== undefined || vars.team_size !== undefined) {
-        setLocalProjectDetails(prev => ({ ...prev, start_date: vars.start_date ?? prev.start_date, end_date: vars.end_date ?? prev.end_date, ba_name: vars.ba_name ?? prev.ba_name, designer_name: vars.designer_name ?? prev.designer_name, project_type: vars.project_type ?? prev.project_type, contract_type: vars.contract_type ?? prev.contract_type, tl_pm_name: vars.tl_pm_name ?? prev.tl_pm_name, team_size: vars.team_size ?? prev.team_size }));
+      if (vars.start_date !== undefined || vars.end_date !== undefined || vars.ba_name !== undefined || vars.designer_name !== undefined || vars.project_type !== undefined || vars.contract_type !== undefined || vars.tl_name !== undefined || vars.pm_name !== undefined || vars.team_size !== undefined) {
+        setLocalProjectDetails(prev => ({ ...prev, start_date: vars.start_date ?? prev.start_date, end_date: vars.end_date ?? prev.end_date, ba_name: vars.ba_name ?? prev.ba_name, designer_name: vars.designer_name ?? prev.designer_name, project_type: vars.project_type ?? prev.project_type, contract_type: vars.contract_type ?? prev.contract_type, tl_name: vars.tl_name ?? prev.tl_name, pm_name: vars.pm_name ?? prev.pm_name, team_size: vars.team_size ?? prev.team_size }));
       }
       toast.success('Project updated!');
     },
@@ -1989,12 +1994,15 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                   </div>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '9.5px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>
-                      TL / PM {detailsSaved === 'tl_pm_name' && <span style={{ color: '#10b981', textTransform: 'none' }}>Saved ✓</span>}
+                      Tech Lead {detailsSaved === 'tl_name' && <span style={{ color: '#10b981', textTransform: 'none' }}>Saved ✓</span>}
                     </div>
-                    <input value={detailTLPM} onChange={e => setDetailTLPM(e.target.value)}
-                      onBlur={e => { updateProjectMut.mutate({ tl_pm_name: e.target.value || null }); showDetailSaved('tl_pm_name'); }}
-                      placeholder="Team Lead or PM name…"
-                      style={{ width: '100%', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '8px 10px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none', boxSizing: 'border-box' }} />
+                    <TypeSearch value={detailTLName} onChange={v => { setDetailTLName(v); updateProjectMut.mutate({ tl_name: v || null }); showDetailSaved('tl_name'); }} type="developer" placeholder="Select tech lead…" allowCustom={false} />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '9.5px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>
+                      Project Manager {detailsSaved === 'pm_name' && <span style={{ color: '#10b981', textTransform: 'none' }}>Saved ✓</span>}
+                    </div>
+                    <TypeSearch value={detailPMName} onChange={v => { setDetailPMName(v); updateProjectMut.mutate({ pm_name: v || null }); showDetailSaved('pm_name'); }} type="ba" placeholder="Select project manager…" allowCustom={false} />
                   </div>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '9.5px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>
@@ -2008,7 +2016,7 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                   </div>
                   <div style={{ display: 'flex', gap: '8px', marginTop: '4px', alignItems: 'center' }}>
                     <Btn sm onClick={() => {
-                      updateProjectMut.mutate({ start_date: detailStartDate || null, end_date: detailEndDate || null, ba_name: detailBAName || null, designer_name: detailDesignerName || null, project_type: detailProjectType || null, contract_type: detailContractType || 'T&M', tl_pm_name: detailTLPM || null, team_size: detailTeamSize ? parseInt(detailTeamSize) : null });
+                      updateProjectMut.mutate({ start_date: detailStartDate || null, end_date: detailEndDate || null, ba_name: detailBAName || null, designer_name: detailDesignerName || null, project_type: detailProjectType || null, contract_type: detailContractType || 'T&M', tl_name: detailTLName || null, pm_name: detailPMName || null, team_size: detailTeamSize ? parseInt(detailTeamSize) : null });
                       setEditingDetails(false);
                     }} disabled={updateProjectMut.isPending}>Save</Btn>
                     <Btn sm v="ghost" onClick={() => {
@@ -2016,7 +2024,8 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                       setDetailBAName(localProjectDetails.ba_name); setDetailDesignerName(localProjectDetails.designer_name);
                       setDetailProjectType(localProjectDetails.project_type);
                       setDetailContractType(localProjectDetails.contract_type);
-                      setDetailTLPM(localProjectDetails.tl_pm_name);
+                      setDetailTLName(localProjectDetails.tl_name);
+                      setDetailPMName(localProjectDetails.pm_name);
                       setDetailTeamSize(localProjectDetails.team_size ? String(localProjectDetails.team_size) : '');
                       setEditingDetails(false);
                     }}>Cancel</Btn>
@@ -2031,7 +2040,8 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                     { l: 'Business Analyst', v: localProjectDetails.ba_name || '—' },
                     { l: 'Designer', v: localProjectDetails.designer_name || '—' },
                     { l: 'Project Type', v: localProjectDetails.project_type ? localProjectDetails.project_type.charAt(0).toUpperCase() + localProjectDetails.project_type.slice(1) : '—' },
-                    { l: 'TL / PM', v: localProjectDetails.tl_pm_name || '—' },
+                    { l: 'Tech Lead', v: localProjectDetails.tl_name || '—' },
+                    { l: 'Project Manager', v: localProjectDetails.pm_name || '—' },
                     { l: 'Team Size', v: localProjectDetails.team_size ? `${localProjectDetails.team_size} members` : '—' },
                   ].map(({ l, v }) => (
                     <div key={l}>
@@ -2549,7 +2559,7 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                   </div>
                   <div style={{ marginBottom: '14px' }}>
                     <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: C.textMid, marginBottom: '8px', fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.08em', textTransform: 'uppercase' }}>Assignee</label>
-                    <DeveloperComboInput value={bAssignee} onChange={setBAssignee} roster={roster} onNewName={name => rosterMut.mutate({ name, action: 'add' })} borderColor={C.blue} />
+                    <TypeSearch value={bAssignee} onChange={v => { setBAssignee(v); if (v) rosterMut.mutate({ name: v, action: 'add' }); }} type="all" placeholder="Search developers…" allowCustom={true} />
                   </div>
                   <div style={{ gridColumn: '1/-1' }}>
                     <Inp label="Summary" ph="Describe the bug clearly" value={bSummary} onChange={v => { setBSummary(v); if (v.trim().length >= 3) setBErrors(e => ({ ...e, summary: '' })); }} req />
@@ -2557,7 +2567,7 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                   </div>
                   <div style={{ marginBottom: '14px' }}>
                     <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: C.textMid, marginBottom: '8px', fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.08em', textTransform: 'uppercase' }}>Developed By</label>
-                    <DeveloperComboInput value={bDevelopedBy} onChange={setBDevelopedBy} roster={roster} onNewName={name => rosterMut.mutate({ name, action: 'add' })} borderColor={C.green} />
+                    <TypeSearch value={bDevelopedBy} onChange={v => { setBDevelopedBy(v); if (v) rosterMut.mutate({ name: v, action: 'add' }); }} type="all" placeholder="Search developers…" allowCustom={true} />
                   </div>
                   <Sel label="Bug Status" opts={['Open','In Progress','Fixed (To Test)','Closed',"Won't Fix (Invalid)"]} value={bStatus} onChange={setBStatus} />
                   <Sel label="Priority" opts={['Critical','High','Medium','Low']} value={bPriority} onChange={setBPriority} />

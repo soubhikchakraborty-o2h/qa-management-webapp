@@ -1,5 +1,5 @@
 # QAMS — Bug & Feature Tracker
-Last Updated: 2026-05-09 (H-series + L1)
+Last Updated: 2026-05-09 (H-series + L1 + F17/F18)
 
 ---
 
@@ -23,6 +23,8 @@ Last Updated: 2026-05-09 (H-series + L1)
 | F14 | Automation tab — ZIP upload replaces predefined cards | 🟢 Fixed — predefined Playwright/Selenium cards removed; clean ZIP upload UI with drag-and-drop, ZIP list with download/delete; base64 stored in DB |
 | F15 | Credentials tab between Automation and Documents | 🟢 Fixed — project_credentials table + backend routes; Credentials tab shows credential cards with masked password, Eye toggle, Copy buttons for username/password/URL; QA can add/delete, developers read-only |
 | F16 | L1: Contract Type + TL/PM + Team Size fields in Project Details | 🟢 Fixed — DB columns added (contract_type text CHECK, tl_pm_name text, team_size integer); backend PATCH allows all three; Project Details card shows them in edit form (onBlur auto-save + "Saved ✓") and read-only view (contract as accent chip) |
+| F17 | Split TL/PM into separate Tech Lead + Project Manager TypeSearch fields | 🟢 Fixed — tl_name + pm_name DB columns added; backend PATCH allows both; Project Details edit form shows two TypeSearch dropdowns (TL from developers list, PM from BA list); read-only view shows two rows |
+| F18 | Assignee + Developed By: fetch from global_members (all types) | 🟢 Fixed — DeveloperComboInput replaced with TypeSearch (type='all', allowCustom=true) in both BugExpandedRow and Log Bug modal; names sourced from full global_members list |
 
 ---
 
