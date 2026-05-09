@@ -63,9 +63,8 @@ router.get('/dev-view', async (req, res) => {
     if (!qaUser) return res.json([]);
 
     let query = supabase.from('projects').select(BASE_SELECT);
-    if (qaUser.role !== 'admin') {
-      query = query.eq('created_by', qaUser.id);
-    }
+    // Always restrict to only the selected QA's own projects, regardless of their role
+    query = query.or(`created_by.eq.${qaUser.id},additional_qas.cs.{${qaUser.id}}`);
 
     const { data, error } = await query.order('created_at', { ascending: false });
     if (error) throw error;
@@ -90,6 +89,10 @@ router.post('/', authenticate, async (req, res) => {
   try {
     const { name, project_code, app_type, figma_url, frd_url, description, start_date, end_date, ba_name, designer_name, project_type } = req.body;
     if (!name || !project_code || !app_type) return res.status(400).json({ error: 'name, project_code, app_type required' });
+
+    // Reject duplicate project names (case-insensitive)
+    const { data: existing } = await supabase.from('projects').select('id').ilike('name', name.trim()).single();
+    if (existing) return res.status(409).json({ error: 'A project with this name already exists' });
 
     const { data: project, error } = await supabase
       .from('projects')

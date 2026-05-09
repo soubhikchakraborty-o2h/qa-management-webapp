@@ -92,6 +92,7 @@ export function Sidebar({ page, setPage, user, insideProject, onBackToProjects, 
   const handleChangePassword = async () => {
     setPwError('');
     if (pwNew !== pwConfirm) { setPwError('Passwords do not match'); return; }
+    if (!pwNew.trim()) { setPwError('Password cannot be only spaces'); return; }
     if (pwNew.length < 6) { setPwError('Minimum 6 characters'); return; }
     setPwPending(true);
     try {
@@ -331,8 +332,8 @@ export function Sidebar({ page, setPage, user, insideProject, onBackToProjects, 
           <div
             onClick={() => setShowAbout(true)}
             onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.color = 'var(--qa-accent)'}
-            onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.color = 'rgba(255,255,255,0.18)'}
-            style={{ fontSize: '9px', color: 'rgba(255,255,255,0.18)', fontFamily: "'JetBrains Mono', monospace", textAlign: 'center', padding: '10px 8px 2px', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: '2px', transition: 'color 0.15s' }}
+            onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.color = 'var(--qa-text-muted)'}
+            style={{ fontSize: '9px', color: 'var(--qa-text-muted)', fontFamily: "'JetBrains Mono', monospace", textAlign: 'center', padding: '10px 8px 2px', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: '2px', transition: 'color 0.15s', letterSpacing: '0.05em' }}
           >v1.0.0 — O2H Technology</div>
         </div>
       </div>

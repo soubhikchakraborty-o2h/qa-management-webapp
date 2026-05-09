@@ -653,6 +653,9 @@ function ImportTestCasesModal({ projectCode, onClose, onImport, isImporting }: {
   };
 
   const handleSheetImport = async () => {
+    setError('');
+    if (!sheetUrl.trim()) { setError('Please enter a Google Sheets URL'); return; }
+    if (!sheetUrl.includes('docs.google.com/spreadsheets')) { setError('Invalid URL. Please paste a Google Sheets link'); return; }
     const match = sheetUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
     if (!match) { setError('Invalid Google Sheets URL'); return; }
     const sheetId = match[1];
@@ -660,12 +663,17 @@ function ImportTestCasesModal({ projectCode, onClose, onImport, isImporting }: {
     const gid = gidMatch ? gidMatch[1] : '0';
     const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
     setLoading(true);
-    setError('');
     try {
       const resp = await fetch(csvUrl);
-      if (!resp.ok) { setError('Cannot fetch sheet. Ensure it is set to "Anyone with link can view"'); setLoading(false); return; }
+      if (resp.status === 401 || resp.status === 403) {
+        setError('Cannot access this sheet. Please set sharing to "Anyone with the link can view" in Google Sheets');
+        setLoading(false); return;
+      }
+      if (!resp.ok) { setError(`Failed to fetch sheet (Error ${resp.status}). Check the URL and permissions.`); setLoading(false); return; }
       const text = await resp.text();
+      if (!text || text.trim().length === 0) { setError('The sheet appears to be empty. Please check the sheet has data.'); setLoading(false); return; }
       const result = Papa.parse(text, { header: true, skipEmptyLines: true, transformHeader: (h: string) => h.trim() });
+      if (!result.data || result.data.length === 0) { setError('No data rows found in sheet. Make sure the sheet has headers and data.'); setLoading(false); return; }
       console.log('[TC Import] Headers:', result.meta.fields);
       setPreview((result.data as any[]).map(normalizeRow));
     } catch {
@@ -861,18 +869,27 @@ function ImportBugsModal({ projectCode, onClose, onImport }: {
   };
 
   const handleSheetImport = async () => {
+    setError('');
+    if (!sheetUrl.trim()) { setError('Please enter a Google Sheets URL'); return; }
+    if (!sheetUrl.includes('docs.google.com/spreadsheets')) { setError('Invalid URL. Please paste a Google Sheets link'); return; }
     const match = sheetUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
     if (!match) { setError('Invalid Google Sheets URL'); return; }
     const sheetId = match[1];
     const gidMatch = sheetUrl.match(/[?&#]gid=([0-9]+)/);
     const gid = gidMatch ? gidMatch[1] : '0';
     const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
-    setLoading(true); setError('');
+    setLoading(true);
     try {
       const resp = await fetch(csvUrl);
-      if (!resp.ok) { setError('Cannot fetch sheet. Ensure it is set to "Anyone with link can view"'); setLoading(false); return; }
+      if (resp.status === 401 || resp.status === 403) {
+        setError('Cannot access this sheet. Please set sharing to "Anyone with the link can view" in Google Sheets');
+        setLoading(false); return;
+      }
+      if (!resp.ok) { setError(`Failed to fetch sheet (Error ${resp.status}). Check the URL and permissions.`); setLoading(false); return; }
       const text = await resp.text();
+      if (!text || text.trim().length === 0) { setError('The sheet appears to be empty. Please check the sheet has data.'); setLoading(false); return; }
       const result = Papa.parse(text, { header: true, skipEmptyLines: true, transformHeader: (h: string) => h.trim() });
+      if (!result.data || result.data.length === 0) { setError('No data rows found in sheet. Make sure the sheet has headers and data.'); setLoading(false); return; }
       console.log('[Bug Import] Headers:', result.meta.fields);
       setPreview((result.data as any[]).map(normalizeBugRow));
     } catch {
@@ -975,6 +992,8 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
   const [docCategory, setDocCategory] = useState('figma');
   const [docType, setDocType] = useState('link');
 
+  const TERMINAL_STATUSES = ['Closed', "Won't Fix (Invalid)"];
+
   const KANBAN_STATUSES = [
     { label: 'Open', color: '#ef4444' },
     { label: 'In Progress', color: '#f59e0b' },
@@ -1030,6 +1049,8 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
   const [bModule, setBModule] = useState(''); const [bSummary, setBSummary] = useState('');
   const [bAssignee, setBAssignee] = useState(''); const [bDevelopedBy, setBDevelopedBy] = useState('');
   const [bStatus, setBStatus] = useState('Open'); const [bPriority, setBPriority] = useState('Medium');
+  const [bErrors, setBErrors] = useState<Record<string, string>>({});
+  const [endDateError, setEndDateError] = useState('');
   const [bQAStatus, setBQAStatus] = useState('Open'); const [bQAComment, setBQAComment] = useState('');
 
   // Bulk select
@@ -1300,6 +1321,10 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
     else if (type === 'doc') deleteDocMut.mutate(id);
     else if (type === 'bulkBug') bulkDeleteBugsMut.mutate(id.split(','));
     else if (type === 'bulkTC') bulkDeleteTCsMut.mutate(id.split(','));
+    else if (type === 'credential') {
+      setCreds(prev => prev.filter((c: any) => c.id !== id));
+      deleteCredential(project.id, id).catch(() => toast.error('Failed to delete credential'));
+    }
   };
 
   const isDeleting = deleteTCMut.isPending || deleteBugMut.isPending || deleteScriptMut.isPending || deleteDocMut.isPending || bulkDeleteBugsMut.isPending || bulkDeleteTCsMut.isPending;
@@ -1902,9 +1927,20 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                     </div>
                     <div style={{ flex: 1, minWidth: '140px' }}>
                       <div style={{ fontSize: '9.5px', color: C.textMid, fontFamily: "'JetBrains Mono',monospace", textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>End Date</div>
-                      <input type="date" value={detailEndDate} onChange={e => setDetailEndDate(e.target.value)}
+                      <input type="date" value={detailEndDate}
+                        min={detailStartDate || undefined}
+                        onChange={e => {
+                          const val = e.target.value;
+                          if (detailStartDate && val && val < detailStartDate) {
+                            setEndDateError('End date cannot be before start date');
+                            return;
+                          }
+                          setEndDateError('');
+                          setDetailEndDate(val);
+                        }}
                         onClick={e => { try { (e.target as HTMLInputElement).showPicker?.(); } catch {} }}
-                        style={{ width: '100%', background: 'var(--qa-input)', border: `1px solid ${C.border}`, borderRadius: '8px', padding: '7px 10px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none', cursor: 'pointer' }} />
+                        style={{ width: '100%', background: 'var(--qa-input)', border: `1px solid ${endDateError ? '#ef4444' : C.border}`, borderRadius: '8px', padding: '7px 10px', color: C.text, fontSize: '12px', fontFamily: "'JetBrains Mono',monospace", outline: 'none', cursor: 'pointer' }} />
+                      {endDateError && <p style={{ color: '#ef4444', fontSize: '10px', fontFamily: 'var(--font-body)', margin: '3px 0 0' }}>{endDateError}</p>}
                     </div>
                   </div>
                   <div>
@@ -2300,7 +2336,18 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                   return (
                     <div key={status}
                       onDragOver={e => { if (user.role === 'hr' || (!canEdit && user.role !== 'developer')) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOverColumn(status); }}
-                      onDrop={e => { if (user.role === 'hr' || (!canEdit && user.role !== 'developer')) return; e.preventDefault(); if (!draggedBugId) return; saveBugStatusMut.mutate({ id: draggedBugId, status }); setDraggedBugId(null); setDragOverColumn(null); }}
+                      onDrop={e => {
+                        if (user.role === 'hr' || (!canEdit && user.role !== 'developer')) return;
+                        e.preventDefault();
+                        if (!draggedBugId) return;
+                        const draggedBug = (bugs as any[]).find((b: any) => b.id === draggedBugId);
+                        if (draggedBug && TERMINAL_STATUSES.includes(draggedBug.status)) {
+                          toast.error("Cannot move a Closed or Won't Fix bug");
+                          setDraggedBugId(null); setDragOverColumn(null); return;
+                        }
+                        saveBugStatusMut.mutate({ id: draggedBugId, status });
+                        setDraggedBugId(null); setDragOverColumn(null);
+                      }}
                       onDragLeave={() => setDragOverColumn(null)}
                       style={{ background: isOver ? 'rgba(59,130,246,0.08)' : 'var(--qa-card)', border: isOver ? '1px solid rgba(59,130,246,0.4)' : `1px solid ${C.border}`, borderRadius: '12px', padding: '12px', minHeight: '200px', transition: 'background 0.15s, border-color 0.15s' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', paddingBottom: '8px', borderBottom: `1px solid ${C.border}` }}>
@@ -2386,7 +2433,15 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                             <td style={{ padding: '12px 14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><span style={{ fontSize: '12px', color: b.assignee === 'Unassigned' || !b.assignee ? C.textDim : C.text }}>{b.assignee || 'Unassigned'}</span></td>
                             <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}><Chip text={b.priority || 'Medium'} color={PRIORITY_COLORS[b.priority || 'Medium'] || C.textDim} sm /></td>
                             <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
-                              <select value={b.status} disabled={!canUpdateBugStatus} onClick={e => e.stopPropagation()} onChange={e => { e.stopPropagation(); canUpdateBugStatus && saveBugStatusMut.mutate({ id: b.id, status: e.target.value }); }} style={{ background: 'var(--qa-select-bg)', border: `1px solid ${STATUS_COLORS[b.status] || C.border}`, borderRadius: '6px', padding: '4px 8px', color: STATUS_COLORS[b.status] || C.text, fontSize: '11px', fontFamily: "'JetBrains Mono',monospace", cursor: canUpdateBugStatus ? 'pointer' : 'default', outline: 'none', opacity: canUpdateBugStatus ? 1 : 0.7, maxWidth: '100%' }}>
+                              <select value={b.status} disabled={!canUpdateBugStatus} onClick={e => e.stopPropagation()} onChange={e => {
+                                e.stopPropagation();
+                                if (!canUpdateBugStatus) return;
+                                if (TERMINAL_STATUSES.includes(b.status)) {
+                                  toast.error("Cannot change status of a Closed or Won't Fix bug");
+                                  return;
+                                }
+                                saveBugStatusMut.mutate({ id: b.id, status: e.target.value });
+                              }} style={{ background: 'var(--qa-select-bg)', border: `1px solid ${STATUS_COLORS[b.status] || C.border}`, borderRadius: '6px', padding: '4px 8px', color: STATUS_COLORS[b.status] || C.text, fontSize: '11px', fontFamily: "'JetBrains Mono',monospace", cursor: canUpdateBugStatus ? 'pointer' : 'default', outline: 'none', opacity: canUpdateBugStatus ? 1 : 0.7, maxWidth: '100%' }}>
                                 {['Open','In Progress','Fixed (To Test)','Closed',"Won't Fix (Invalid)"].map(s => <option key={s} value={s} style={{ background: C.card, color: C.text }}>{s}</option>)}
                               </select>
                             </td>
@@ -2436,12 +2491,18 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
             {addBug && (
               <Modal title="🐛 Log New Bug" onClose={() => setAddBug(false)} wide>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
-                  <Inp label="Module" ph="Which module?" value={bModule} onChange={setBModule} req />
+                  <div>
+                    <Inp label="Module" ph="Which module?" value={bModule} onChange={v => { setBModule(v); if (v.trim()) setBErrors(e => ({ ...e, module: '' })); }} req />
+                    {bErrors.module && <p style={{ color: '#ef4444', fontSize: '11px', fontFamily: 'var(--font-body)', marginTop: '-8px', marginBottom: '10px' }}>{bErrors.module}</p>}
+                  </div>
                   <div style={{ marginBottom: '14px' }}>
                     <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: C.textMid, marginBottom: '8px', fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.08em', textTransform: 'uppercase' }}>Assignee</label>
                     <DeveloperComboInput value={bAssignee} onChange={setBAssignee} roster={roster} onNewName={name => rosterMut.mutate({ name, action: 'add' })} borderColor={C.blue} />
                   </div>
-                  <div style={{ gridColumn: '1/-1' }}><Inp label="Summary" ph="Describe the bug clearly" value={bSummary} onChange={setBSummary} req /></div>
+                  <div style={{ gridColumn: '1/-1' }}>
+                    <Inp label="Summary" ph="Describe the bug clearly" value={bSummary} onChange={v => { setBSummary(v); if (v.trim().length >= 3) setBErrors(e => ({ ...e, summary: '' })); }} req />
+                    {bErrors.summary && <p style={{ color: '#ef4444', fontSize: '11px', fontFamily: 'var(--font-body)', marginTop: '-8px', marginBottom: '10px' }}>{bErrors.summary}</p>}
+                  </div>
                   <div style={{ marginBottom: '14px' }}>
                     <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: C.textMid, marginBottom: '8px', fontFamily: "'JetBrains Mono',monospace", letterSpacing: '.08em', textTransform: 'uppercase' }}>Developed By</label>
                     <DeveloperComboInput value={bDevelopedBy} onChange={setBDevelopedBy} roster={roster} onNewName={name => rosterMut.mutate({ name, action: 'add' })} borderColor={C.green} />
@@ -2453,10 +2514,15 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <Btn v="danger" onClick={() => {
+                    const errs: Record<string, string> = {};
+                    if (!bModule.trim()) errs.module = 'Module is required';
+                    if (!bSummary.trim()) errs.summary = 'Summary is required';
+                    else if (bSummary.trim().length < 3) errs.summary = 'Summary must be at least 3 characters';
+                    if (Object.keys(errs).length > 0) { setBErrors(errs); return; }
                     if (bDevelopedBy) rosterMut.mutate({ name: bDevelopedBy, action: 'add' });
                     if (bAssignee) rosterMut.mutate({ name: bAssignee, action: 'add' });
-                    createBugMut.mutate({ project_id: project.id, module: bModule, summary: bSummary, assignee: bAssignee || null, developed_by: bDevelopedBy || '', status: bStatus, priority: bPriority, qa_status: bQAStatus, qa_comment: bQAComment });
-                  }} disabled={createBugMut.isPending || !bModule || !bSummary}>
+                    createBugMut.mutate({ project_id: project.id, module: bModule.trim(), summary: bSummary.trim(), assignee: bAssignee || null, developed_by: bDevelopedBy || '', status: bStatus, priority: bPriority, qa_status: bQAStatus, qa_comment: bQAComment });
+                  }} disabled={createBugMut.isPending}>
                     {createBugMut.isPending ? 'Logging…' : 'Log Bug'}
                   </Btn>
                   <Btn v="ghost" onClick={() => setAddBug(false)}>Cancel</Btn>
@@ -2486,9 +2552,10 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
             {/* Drop zone — shown when no ZIPs */}
             {(scripts as any[]).filter((s: any) => s.type === 'zip').length === 0 && canEdit && (
               <div
-                onDragOver={e => { e.preventDefault(); setZipDragOver(true); }}
-                onDragLeave={() => setZipDragOver(false)}
-                onDrop={e => { e.preventDefault(); setZipDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleZipFile(f); }}
+                onDragEnter={e => { e.preventDefault(); e.stopPropagation(); setZipDragOver(true); }}
+                onDragOver={e => { e.preventDefault(); e.stopPropagation(); setZipDragOver(true); }}
+                onDragLeave={e => { e.preventDefault(); e.stopPropagation(); setZipDragOver(false); }}
+                onDrop={e => { e.preventDefault(); e.stopPropagation(); setZipDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleZipFile(f); }}
                 style={{ border: `2px dashed ${zipDragOver ? 'var(--qa-accent)' : C.border}`, borderRadius: '12px', padding: '60px 20px', textAlign: 'center', background: zipDragOver ? 'rgba(59,130,246,0.06)' : 'transparent', transition: 'all 0.2s', cursor: 'pointer' }}
               >
                 <Upload size={32} color="var(--qa-text-mid)" style={{ margin: '0 auto 12px', display: 'block' }} />
@@ -2627,9 +2694,8 @@ export function ProjectShell({ project, onBack, user, page, setPage, readOnly, o
                               style={{ padding: '5px', background: 'none', border: `1px solid ${C.border}`, borderRadius: '6px', cursor: 'pointer', color: 'var(--qa-text-mid)', display: 'flex', alignItems: 'center', transition: 'all 0.15s' }}>
                               <Pencil size={13} />
                             </button>
-                            <button onClick={async () => {
-                              if (!window.confirm('Delete this credential?')) return;
-                              try { await deleteCredential(project.id, cred.id); setCreds(prev => prev.filter((c: any) => c.id !== cred.id)); toast.success('Deleted'); } catch { toast.error('Failed'); }
+                            <button onClick={() => {
+                              setConfirmDelete({ type: 'credential', id: cred.id, label: `credential for "${cred.user_role}"` });
                             }}
                               onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(239,68,68,0.3)'; (e.currentTarget as HTMLButtonElement).style.color = C.red; }}
                               onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.border; (e.currentTarget as HTMLButtonElement).style.color = 'var(--qa-text-mid)'; }}

@@ -1,5 +1,5 @@
 # QAMS — Bug & Feature Tracker
-Last Updated: 2026-05-09
+Last Updated: 2026-05-09 (H-series)
 
 ---
 
@@ -73,6 +73,17 @@ Last Updated: 2026-05-09
 | 42 | Kanban not interactable for developers (C6) | 🟢 Fixed — draggable and drop now allowed for developer role (HR still blocked) |
 | 43 | Pass rate bar not visible in light mode (C7) | 🟢 Fixed — track uses var(--qa-border-soft) instead of rgba(white,0.06); fill color is dynamic (green ≥80%, accent ≥50%, red <50%) |
 | 44 | Project update (Figma/FRD/Details) requires refresh to show new values | 🟢 Fixed — localFigmaUrl, localFrdUrl, localProjectDetails state updated immediately in updateProjectMut.onSuccess; no refresh needed |
+| 45 | H1: Project created with empty/whitespace name | 🟢 Fixed — handleCreateProject trims + validates (min 2 chars); inline error shown below Project Name field |
+| 46 | H2: Bug created with just whitespace in Module/Summary | 🟢 Fixed — Log Bug form validates on submit with bErrors state; inline errors shown; values trimmed before sending |
+| 47 | H3: Project with same name can be created | 🟢 Fixed — backend POST /projects checks ilike('name', trim) before INSERT; returns 409 "A project with this name already exists" |
+| 48 | H4: Password changed with whitespace-only value | 🟢 Fixed — handleChangePassword adds !pwNew.trim() check before length check |
+| 49 | H5: End date can be earlier than start date | 🟢 Fixed — end date input validates val < detailStartDate; shows inline error; min attribute set to detailStartDate |
+| 50 | H6: Wrong/generic validation errors for Google Sheets import | 🟢 Fixed — handleSheetImport (both TC + Bug) now shows specific messages: missing URL, not a Sheets link, 401/403 sharing, non-ok status code, empty sheet, no data rows |
+| 51 | H8: Closed bug can be moved to Won't Fix in Kanban/dropdown | 🟢 Fixed — TERMINAL_STATUSES constant; kanban onDrop and inline status select both check and show toast.error if bug is already Closed or Won't Fix |
+| 52 | H9: JS alert() for credential delete — should use modal | 🟢 Fixed — delete button uses setConfirmDelete({type:'credential',...}); handleDeleteConfirm handles 'credential' type with optimistic remove |
+| 53 | H10: Drag and drop not working for ZIP file uploads | 🟢 Fixed — ZIP drop zone now has onDragEnter + stopPropagation on all four drag events (enter/over/leave/drop) |
+| 54 | H11: Developer selecting admin QA sees all projects | 🟢 Fixed — /api/projects/dev-view now always filters by QA's own projects (created_by or additional_qas) regardless of QA's role |
+| 55 | H12: Version link not visible in light theme | 🟢 Fixed — version text color changed from rgba(255,255,255,0.18) to var(--qa-text-muted); mouseLeave also resets to var(--qa-text-muted) |
 
 ---
 
